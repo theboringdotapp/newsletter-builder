@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { NewsletterGenerator } from "@/lib/openai";
+import { NewsletterGenerator, extractOpenAIToken } from "@/lib/openai";
 import { SavedLink, Thought } from "@/types";
-
-const generator = new NewsletterGenerator();
 
 export async function POST(request: Request) {
   try {
+    const token = extractOpenAIToken(request);
+    const generator = new NewsletterGenerator(token);
+
     const { links, thoughts }: { links: SavedLink[]; thoughts: Thought[] } =
       await request.json();
 

@@ -4,9 +4,9 @@ import { SavedLink, Thought } from "@/types";
 export class NewsletterGenerator {
   private openai: OpenAI;
 
-  constructor() {
+  constructor(apiKey: string) {
     this.openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
+      apiKey: apiKey,
     });
   }
 
@@ -22,22 +22,24 @@ export class NewsletterGenerator {
         messages: [
           {
             role: "system",
-            content: `You are a newsletter writer for theboring.app, a brand focused on AI development tools and insights. 
-            Your tone is professional but approachable, technical but accessible. 
-            You write weekly newsletters that include:
-            1. New AI tools worth checking out
-            2. New AI models that are interesting
-            3. Condensed weekly learnings from the creator's thoughts
+            content: `You are a newsletter writer for theboring.app, using a minimalist, clean, and simple style. 
+            Write in a casual, friendly, and conversational tone as if talking to a friend over coffee.
             
-            Format the output as clean HTML that can be used in email templates.
-            Use proper headings, bullet points, and structure for readability.`,
+            Structure the newsletter like this:
+            1. Start with a friendly greeting/intro paragraph
+            2. Add a "This Week's Edition" summary with bullet points of what's included
+            3. Then dive into individual sections with clear headers and emojis
+            4. Keep the tone personal, approachable, and genuinely helpful
+            
+            Use HTML formatting but keep it clean and simple. Use emojis naturally throughout.
+            Make it feel like insights from a friend who's been exploring AI tools all week.`,
           },
           {
             role: "user",
             content: prompt,
           },
         ],
-        max_tokens: 2000,
+        max_tokens: 2500,
         temperature: 0.7,
       });
 
@@ -54,7 +56,15 @@ export class NewsletterGenerator {
   private buildPrompt(links: SavedLink[], thoughts: Thought[]): string {
     const currentWeek = this.getCurrentWeekString();
 
-    let prompt = `Generate a weekly newsletter for the week of ${currentWeek}.\n\n`;
+    let prompt = `Create a friendly, casual newsletter for ${currentWeek} inspired by "the news" style.
+
+Start with a warm, personal greeting that acknowledges we're all building with AI together.
+
+Then create a "This Week's Edition" section with bullet points summarizing what's included.
+
+Content to include:
+
+`;
 
     // Add tools and models section
     const tools = links.filter(
@@ -68,10 +78,10 @@ export class NewsletterGenerator {
     );
 
     if (tools.length > 0) {
-      prompt += "## 🛠️ AI Tools Worth Checking Out\n\n";
+      prompt += "## AI Tools I Discovered This Week:\n\n";
       tools.forEach((tool) => {
-        prompt += `**${tool.title || tool.url}**\n`;
-        prompt += `${tool.url}\n`;
+        prompt += `**${tool.title || "Untitled Tool"}**\n`;
+        prompt += `Link: ${tool.url}\n`;
         if (tool.description) {
           prompt += `${tool.description}\n`;
         }
@@ -80,10 +90,10 @@ export class NewsletterGenerator {
     }
 
     if (models.length > 0) {
-      prompt += "## 🤖 New AI Models to Explore\n\n";
+      prompt += "## New AI Models Worth Checking Out:\n\n";
       models.forEach((model) => {
-        prompt += `**${model.title || model.url}**\n`;
-        prompt += `${model.url}\n`;
+        prompt += `**${model.title || "Untitled Model"}**\n`;
+        prompt += `Link: ${model.url}\n`;
         if (model.description) {
           prompt += `${model.description}\n`;
         }
@@ -92,10 +102,10 @@ export class NewsletterGenerator {
     }
 
     if (articles.length > 0) {
-      prompt += "## 📚 Interesting Reads\n\n";
+      prompt += "## Interesting Reads This Week:\n\n";
       articles.forEach((article) => {
-        prompt += `**${article.title || article.url}**\n`;
-        prompt += `${article.url}\n`;
+        prompt += `**${article.title || "Untitled Article"}**\n`;
+        prompt += `Link: ${article.url}\n`;
         if (article.description) {
           prompt += `${article.description}\n`;
         }
@@ -106,19 +116,23 @@ export class NewsletterGenerator {
     // Add thoughts section
     const selectedThoughts = thoughts.filter((thought) => thought.selected);
     if (selectedThoughts.length > 0) {
-      prompt += "## 💭 Weekly Learnings & Insights\n\n";
-      prompt +=
-        "Here are some condensed insights from my week of building with AI:\n\n";
+      prompt += "## What I Learned Building with AI:\n\n";
       selectedThoughts.forEach((thought) => {
         prompt += `**${thought.title}**\n`;
         prompt += `${thought.content}\n\n`;
       });
     }
 
-    prompt +=
-      "\nPlease write this as a cohesive newsletter with proper HTML formatting. ";
-    prompt +=
-      "Add engaging introductions to each section and make it feel personal and valuable to readers interested in AI development.";
+    prompt += `
+Structure this as an HTML newsletter with:
+1. A friendly opening that makes people feel like they're part of a community
+2. A "This Week's Edition" summary section with bullet points
+3. Each section clearly marked with emojis and headers
+4. Personal commentary that adds value beyond just sharing links
+5. A warm sign-off
+
+Make it feel personal and valuable - like getting recommendations from a friend who's been exploring AI all week.
+Use a conversational tone throughout. Don't just list things - explain why they matter.`;
 
     return prompt;
   }
@@ -133,4 +147,13 @@ export class NewsletterGenerator {
 
     return `Week ${weekNumber}, ${now.getFullYear()}`;
   }
+}
+
+// Helper function to extract OpenAI token from Authorization header
+export function extractOpenAIToken(request: Request): string {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Missing or invalid OpenAI token");
+  }
+  return authHeader.substring(7); // Remove "Bearer " prefix
 }

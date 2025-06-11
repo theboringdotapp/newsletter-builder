@@ -7,13 +7,13 @@ export class GitHubStorage {
   private repo: string;
   private branch: string;
 
-  constructor() {
+  constructor(token: string, owner: string, repo: string, branch = "main") {
     this.octokit = new Octokit({
-      auth: process.env.GITHUB_TOKEN,
+      auth: token,
     });
-    this.owner = process.env.GITHUB_OWNER!;
-    this.repo = process.env.GITHUB_REPO!;
-    this.branch = process.env.GITHUB_BRANCH || "main";
+    this.owner = owner;
+    this.repo = repo;
+    this.branch = branch;
   }
 
   async saveLink(link: SavedLink): Promise<void> {
@@ -149,4 +149,28 @@ export class GitHubStorage {
       throw error;
     }
   }
+}
+
+// Helper function to extract GitHub configuration from request headers
+export function extractGitHubConfig(request: Request): {
+  token: string;
+  owner: string;
+  repo: string;
+  branch: string;
+} {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    throw new Error("Missing or invalid GitHub token");
+  }
+  const token = authHeader.substring(7); // Remove "Bearer " prefix
+
+  const owner = request.headers.get("X-GitHub-Owner");
+  const repo = request.headers.get("X-GitHub-Repo");
+  const branch = request.headers.get("X-GitHub-Branch") || "main";
+
+  if (!owner || !repo) {
+    throw new Error("Missing GitHub repository configuration");
+  }
+
+  return { token, owner, repo, branch };
 }

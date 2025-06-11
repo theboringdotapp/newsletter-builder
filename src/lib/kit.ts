@@ -5,8 +5,8 @@ export class KitService {
   private apiKey: string;
   private baseUrl: string = "https://api.kit.com/v4";
 
-  constructor() {
-    this.apiKey = process.env.KIT_API_KEY!;
+  constructor(apiKey: string) {
+    this.apiKey = apiKey;
   }
 
   async createBroadcastDraft(
@@ -75,4 +75,13 @@ export class KitService {
 
     return JSON.stringify(importData, null, 2);
   }
+}
+
+// Helper function to extract Kit.com token from request headers
+export function extractKitToken(request: Request): string {
+  const kitHeader = request.headers.get("X-Kit-Token");
+  if (!kitHeader) {
+    throw new Error("Missing or invalid Kit.com token");
+  }
+  return kitHeader;
 }

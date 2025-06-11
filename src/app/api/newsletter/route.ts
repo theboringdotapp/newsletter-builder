@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { GitHubStorage } from "@/lib/github";
+import { GitHubStorage, extractGitHubConfig } from "@/lib/github";
 import { SavedLink, Thought, NewsletterData } from "@/types";
-
-const github = new GitHubStorage();
 
 export async function POST(request: Request) {
   try {
+    const { token, owner, repo, branch } = extractGitHubConfig(request);
+    const github = new GitHubStorage(token, owner, repo, branch);
+
     const {
       content,
       links,

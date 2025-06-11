@@ -1,0 +1,116 @@
+---
+description: AI rules derived by SpecStory from the project AI interaction history
+globs: *
+---
+
+## <headers/>
+
+## PROJECT RULES
+
+### GENERAL
+
+-   The AI coding assistant must always follow instructions precisely.
+-   The AI coding assistant must adhere to all project rules, coding standards, workflow guidelines, and best practices defined in this file.
+-   Always use a CLI or a command to install dependencies or kickstart the project. Don't populate the dependencies of the project automatically.
+
+### CONFLICT RESOLUTION
+
+-   If a new rule conflicts with an existing one, resolve it by clarifying the final, decided rule, OR highlight that further user confirmation is needed.
+
+## TECH STACK
+
+-   Next.js 15
+-   React
+-   Typescript
+-   Tailwind CSS v4
+-   Github API
+-   OpenAI GPT-4
+-   Kit.com API
+-   axios
+-   date-fns
+-   lucide-react
+
+## PROJECT DOCUMENTATION & CONTEXT SYSTEM
+
+-   All project rules, coding standards, workflow guidelines, references, documentation structures, and best practices are defined in this file.
+
+## WORKFLOW & RELEASE RULES
+
+### VERSION CONTROL
+
+-   Use clear and concise commit messages.
+
+### DEPLOYMENT
+
+-   Project is deployable to Vercel.
+-   The app uses serverless functions and works perfectly on Vercel's free tier.
+-   The app is a standard Next.js application and can be deployed to: Netlify, Railway, DigitalOcean App Platform, or any platform supporting Node.js.
+
+## DEBUGGING
+
+-   Ensure your repository is public or your token has the right permissions.
+-   Verify `GITHUB_OWNER` and `GITHUB_REPO` environment variables are correct.
+-   Check that your Personal Access Token hasn't expired.
+-   Verify your API key is valid and has credits.
+-   Check the model name in `src/lib/openai.ts` (defaults to `gpt-4`).
+-   Verify your API key is valid.
+-   Check that the email template ID exists in your account.
+-   Make sure Tailwind CSS is working by checking if basic utility classes apply.
+-   Try clearing Next.js cache: `rm -rf .next` and `npm run dev`.
+
+## CODING STANDARDS
+
+### TYPESCRIPT
+
+-   Define explicit types for function parameters and return values.
+
+### TAILWIND CSS
+
+-   Modify styles in `src/app/globals.css` or component files.
+
+### REACT
+
+-   Adhere to React best practices for component structure and data flow.
+
+### API ROUTES
+
+-   Handle errors gracefully in API routes.
+-   Return informative error messages to the client.
+
+### GITHUB API
+
+-   Handle GitHub API authentication and errors properly.
+
+### OPENAI API
+
+-   Handle OpenAI API authentication and errors properly.
+
+## FILE STRUCTURE
+
+-   Project uses the standard Next.js file structure.
+-   GitHub repository structure:
+
+```text
+your-newsletter-data-repo/
+├── links/
+│   └── 2025/
+│       └── 01/           # Month-based organization
+│           └── links.json
+└── newsletters/
+    └── 2025-W03/         # Week-based organization
+        └── newsletter.json
+```
+
+## NEWSLETTER TEMPLATE
+
+-   The AI generates newsletters with this structure:
+    -   🛠️ AI Tools Worth Checking Out: New AI tools you've saved
+    -   🤖 New AI Models to Explore: Latest AI models
+    -   📚 Interesting Reads: Articles and other content
+    -   💭 Weekly Learnings & Insights: Your condensed thoughts and reflections
+- The AI is inspired by "the news" style.
+-   The newsletter should be structured like this:
+    1.  Friendly greeting/intro paragraph (like "nada sozinho" style)
+    2.  "This Week's Edition" summary with bullet points of what's included
+    3.  Individual sections with clear headers and emojis
+    4.  Personal, approachable, and genuinely helpful tone

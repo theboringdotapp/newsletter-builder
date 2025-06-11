@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { GitHubStorage } from "@/lib/github";
+import { GitHubStorage, extractGitHubConfig } from "@/lib/github";
 import { SavedLink } from "@/types";
 
-const github = new GitHubStorage();
-
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { token, owner, repo, branch } = extractGitHubConfig(request);
+    const github = new GitHubStorage(token, owner, repo, branch);
     const links = await github.getLinks();
     return NextResponse.json(links);
   } catch (error) {
@@ -19,6 +19,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const { token, owner, repo, branch } = extractGitHubConfig(request);
+    const github = new GitHubStorage(token, owner, repo, branch);
     const link: SavedLink = await request.json();
     await github.saveLink(link);
     return NextResponse.json({ success: true });
@@ -30,6 +32,8 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const { token, owner, repo, branch } = extractGitHubConfig(request);
+    const github = new GitHubStorage(token, owner, repo, branch);
     const links: SavedLink[] = await request.json();
     await github.updateLinks(links);
     return NextResponse.json({ success: true });
