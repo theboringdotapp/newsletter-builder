@@ -12,6 +12,8 @@ globs: *
 -   The AI coding assistant must always follow instructions precisely.
 -   The AI coding assistant must adhere to all project rules, coding standards, workflow guidelines, and best practices defined in this file.
 -   Always use a CLI or a command to install dependencies or kickstart the project. Don't populate the dependencies of the project automatically.
+-   When a user clicks to add a link, the link should be sent to OpenAI to get a title and quick summary to be added to the newsletter later.
+-   All API Key setup must be on a dedicated settings page, accessible via a toggle in the header. If a feature requires a key that is not set, show a warning on the page with a button to open the settings.
 
 ### CONFLICT RESOLUTION
 
@@ -114,3 +116,8 @@ your-newsletter-data-repo/
     2.  "This Week's Edition" summary with bullet points of what's included
     3.  Individual sections with clear headers and emojis
     4.  Personal, approachable, and genuinely helpful tone
+
+## USER INTERFACE & USER EXPERIENCE
+
+-   The settings page should have a Linear inspired UI and UX: Minimal, straight to the point. Notify the user when things are auto-saved.
+-   Add back buttons to every page, allowing navigation back from pages like "Add Links".

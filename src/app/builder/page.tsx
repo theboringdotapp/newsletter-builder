@@ -2,7 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { SavedLink, Thought } from "@/types";
-import { Wand2, Eye, Save, Settings } from "lucide-react";
+import {
+  Wand2,
+  Eye,
+  Save,
+  Settings,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
 import Toast from "@/components/Toast";
 import Link from "next/link";
 
@@ -222,65 +229,79 @@ export default function BuilderPage() {
         />
       ))}
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">
-          newsletter builder ☕
-        </h1>
-        {hasRequiredTokens && (
-          <div className="flex space-x-3">
-            <button
-              onClick={generateNewsletter}
-              disabled={isGenerating}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <Wand2 className="h-4 w-4" />
-              <span>
-                {isGenerating ? "working on it..." : "generate newsletter"}
-              </span>
-            </button>
-            {generatedContent && (
+      {/* Header with back button */}
+      <div className="flex items-center space-x-4">
+        <Link
+          href="/"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 text-gray-600" />
+        </Link>
+        <div className="flex-1 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">
+            newsletter builder ☕
+          </h1>
+          {hasRequiredTokens && (
+            <div className="flex space-x-3">
               <button
-                onClick={saveNewsletter}
-                disabled={isSaving}
-                className="btn-secondary flex items-center space-x-2"
+                onClick={generateNewsletter}
+                disabled={isGenerating}
+                className="btn-primary flex items-center space-x-2"
               >
-                <Save className="h-4 w-4" />
-                <span>{isSaving ? "saving..." : "save"}</span>
+                <Wand2 className="h-4 w-4" />
+                <span>
+                  {isGenerating ? "working on it..." : "generate newsletter"}
+                </span>
               </button>
-            )}
-          </div>
-        )}
+              {generatedContent && (
+                <button
+                  onClick={saveNewsletter}
+                  disabled={isSaving}
+                  className="btn-secondary flex items-center space-x-2"
+                >
+                  <Save className="h-4 w-4" />
+                  <span>{isSaving ? "saving..." : "save"}</span>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {!hasRequiredTokens ? (
-        <div className="card text-center py-12">
-          <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            configuration required
-          </h3>
-          <p className="text-gray-600 mb-4">
-            you need to complete your github repository setup and add your
-            openai token to build newsletters.
-            {!githubToken &&
-              !githubOwner &&
-              !githubRepo &&
-              !openaiToken &&
-              " nothing is configured yet."}
-            {(!githubToken || !githubOwner || !githubRepo) &&
-              !openaiToken &&
-              " github repository and openai token are missing."}
-            {githubToken &&
-              githubOwner &&
-              githubRepo &&
-              !openaiToken &&
-              " openai token is missing."}
-            {(!githubToken || !githubOwner || !githubRepo) &&
-              openaiToken &&
-              " github repository configuration is missing."}
-          </p>
-          <Link href="/" className="btn-primary">
-            set up tokens
-          </Link>
+        <div className="border border-orange-200 rounded-lg p-6 bg-orange-50">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 text-center">
+              <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                Configuration required
+              </h3>
+              <p className="text-orange-800 mb-4">
+                You need to configure GitHub repository and OpenAI API key to
+                build newsletters.
+                {!githubToken &&
+                  !githubOwner &&
+                  !githubRepo &&
+                  !openaiToken &&
+                  " Nothing is configured yet."}
+                {(!githubToken || !githubOwner || !githubRepo) &&
+                  !openaiToken &&
+                  " GitHub repository and OpenAI API key are missing."}
+                {githubToken &&
+                  githubOwner &&
+                  githubRepo &&
+                  !openaiToken &&
+                  " OpenAI API key is missing."}
+                {(!githubToken || !githubOwner || !githubRepo) &&
+                  openaiToken &&
+                  " GitHub repository configuration is missing."}
+              </p>
+              <Link href="/settings" className="btn-primary">
+                <Settings className="h-4 w-4 mr-2" />
+                Configure in Settings
+              </Link>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { SavedLink } from "@/types";
-import { Plus, Trash2, ExternalLink, Settings } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  ExternalLink,
+  Settings,
+  Sparkles,
+  ArrowLeft,
+  AlertCircle,
+} from "lucide-react";
 import Toast from "@/components/Toast";
 import Link from "next/link";
 
@@ -20,7 +28,9 @@ export default function LinksPage() {
   const [githubOwner, setGithubOwner] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
   const [githubBranch, setGithubBranch] = useState("main");
+  const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [newLink, setNewLink] = useState({
     url: "",
@@ -30,16 +40,18 @@ export default function LinksPage() {
   });
 
   useEffect(() => {
-    // Load GitHub configuration from localStorage
+    // Load configuration from localStorage
     const token = localStorage.getItem("github_token") || "";
     const owner = localStorage.getItem("github_owner") || "";
     const repo = localStorage.getItem("github_repo") || "";
     const branch = localStorage.getItem("github_branch") || "main";
+    const openaiKey = localStorage.getItem("openai_api_key") || "";
 
     setGithubToken(token);
     setGithubOwner(owner);
     setGithubRepo(repo);
     setGithubBranch(branch);
+    setOpenaiApiKey(openaiKey);
 
     if (token && owner && repo) {
       loadLinks(token, owner, repo, branch);
@@ -92,6 +104,48 @@ export default function LinksPage() {
       addToast("Network error loading links", "error");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const summarizeLink = async () => {
+    if (!newLink.url || !openaiApiKey) {
+      addToast(
+        "URL and OpenAI API key are required for summarization",
+        "error"
+      );
+      return;
+    }
+
+    setIsGeneratingSummary(true);
+    try {
+      const response = await fetch("/api/links/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: newLink.url,
+          openaiApiKey: openaiApiKey,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setNewLink({
+          ...newLink,
+          title: result.title || newLink.title,
+          description: result.summary || newLink.description,
+        });
+        addToast("Link summarized successfully! ✨", "success");
+      } else {
+        const error = await response.json();
+        addToast(error.error || "Failed to summarize link", "error");
+      }
+    } catch (error) {
+      console.error("Error summarizing link:", error);
+      addToast("Network error summarizing link", "error");
+    } finally {
+      setIsGeneratingSummary(false);
     }
   };
 
@@ -172,6 +226,10 @@ export default function LinksPage() {
     }
   };
 
+  // Check if GitHub is configured
+  const isGithubConfigured = githubToken && githubOwner && githubRepo;
+  const isOpenAIConfigured = openaiApiKey;
+
   return (
     <div className="space-y-6">
       {toasts.map((toast) => (
@@ -183,53 +241,127 @@ export default function LinksPage() {
         />
       ))}
 
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">save links ✨</h1>
-        {githubToken && githubOwner && githubRepo && (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="btn-primary flex items-center space-x-2"
-          >
-            <Plus className="h-4 w-4" />
-            <span>add link</span>
-          </button>
-        )}
+      {/* Header with back button */}
+      <div className="flex items-center space-x-4">
+        <Link
+          href="/"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="h-5 w-5 text-gray-600" />
+        </Link>
+        <div className="flex-1 flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-gray-900">save links ✨</h1>
+          {isGithubConfigured && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn-primary flex items-center space-x-2"
+            >
+              <Plus className="h-4 w-4" />
+              <span>add link</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {!githubToken || !githubOwner || !githubRepo ? (
-        <div className="card text-center py-12">
-          <Settings className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            github configuration required
-          </h3>
-          <p className="text-gray-600 mb-4">
-            you need to set up your github repository and token to save and load
-            links.
-          </p>
-          <Link href="/" className="btn-primary">
-            complete setup
-          </Link>
+      {/* GitHub Configuration Warning */}
+      {!isGithubConfigured && (
+        <div className="border border-orange-200 rounded-lg p-6 bg-orange-50">
+          <div className="flex items-start space-x-3">
+            <AlertCircle className="h-6 w-6 text-orange-600 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-orange-900 mb-2">
+                GitHub configuration required
+              </h3>
+              <p className="text-orange-800 mb-4">
+                You need to configure your GitHub repository to save and load
+                links. This is where your data will be stored.
+              </p>
+              <Link href="/settings" className="btn-primary">
+                <Settings className="h-4 w-4 mr-2" />
+                Configure in Settings
+              </Link>
+            </div>
+          </div>
         </div>
-      ) : (
+      )}
+
+      {/* OpenAI Warning (only show if GitHub is configured but OpenAI is not) */}
+      {isGithubConfigured && !isOpenAIConfigured && (
+        <div className="border border-blue-200 rounded-lg p-4 bg-blue-50">
+          <div className="flex items-center space-x-3">
+            <Sparkles className="h-5 w-5 text-blue-600" />
+            <div className="flex-1">
+              <p className="text-blue-800 text-sm">
+                <strong>Tip:</strong> Add your OpenAI API key in settings to
+                enable AI-powered link summarization
+              </p>
+            </div>
+            <Link
+              href="/settings"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Add API Key
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {isGithubConfigured && (
         <>
           {showAddForm && (
             <div className="card">
-              <h3 className="text-lg font-semibold mb-4">add new link</h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">add new link</h3>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600"
+                >
+                  ×
+                </button>
+              </div>
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     URL *
                   </label>
-                  <input
-                    type="url"
-                    value={newLink.url}
-                    onChange={(e) =>
-                      setNewLink({ ...newLink, url: e.target.value })
-                    }
-                    className="input-field"
-                    placeholder="https://..."
-                    required
-                  />
+                  <div className="flex space-x-2">
+                    <input
+                      type="url"
+                      value={newLink.url}
+                      onChange={(e) =>
+                        setNewLink({ ...newLink, url: e.target.value })
+                      }
+                      className="input-field flex-1"
+                      placeholder="https://..."
+                      required
+                    />
+                    {isOpenAIConfigured && newLink.url && (
+                      <button
+                        type="button"
+                        onClick={summarizeLink}
+                        disabled={isGeneratingSummary}
+                        className="btn-secondary flex items-center space-x-1 whitespace-nowrap"
+                        title="Generate title and summary with AI"
+                      >
+                        <Sparkles className="h-4 w-4" />
+                        <span>
+                          {isGeneratingSummary ? "AI Summary..." : "AI Summary"}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  {!isOpenAIConfigured && newLink.url && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      <Link
+                        href="/settings"
+                        className="text-blue-600 hover:underline"
+                      >
+                        Add OpenAI API key
+                      </Link>{" "}
+                      to enable AI summarization
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -309,7 +441,7 @@ export default function LinksPage() {
               </div>
             ) : links.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
-                No links saved yet. Click &ldquo;Add Link&rdquo; to get started!
+                No links saved yet. Click "Add Link" to get started!
               </div>
             ) : (
               links.map((link) => (

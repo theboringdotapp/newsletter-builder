@@ -1,44 +1,45 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Bookmark, Wand2, Send, ArrowRight } from "lucide-react";
-import TokenManager from "@/components/TokenManager";
+import { Bookmark, Wand2, Send, ArrowRight, Settings } from "lucide-react";
 
 export default function HomePage() {
-  const [tokens, setTokens] = useState({
-    github: "",
-    openai: "",
-    kit: "",
-    githubOwner: "",
-    githubRepo: "",
-    githubBranch: "main",
-  });
+  const [isConfigured, setIsConfigured] = useState(false);
 
-  const handleTokensChange = useCallback(
-    (newTokens: {
-      github: string;
-      openai: string;
-      kit: string;
-      githubOwner: string;
-      githubRepo: string;
-      githubBranch: string;
-    }) => {
-      setTokens(newTokens);
-    },
-    []
-  );
+  useEffect(() => {
+    // Check if basic configuration exists
+    const githubToken = localStorage.getItem("github_token") || "";
+    const githubOwner = localStorage.getItem("github_owner") || "";
+    const githubRepo = localStorage.getItem("github_repo") || "";
 
-  const hasRequiredTokens =
-    tokens.github && tokens.openai && tokens.githubOwner && tokens.githubRepo;
+    setIsConfigured(githubToken && githubOwner && githubRepo ? true : false);
+  }, []);
 
   return (
     <div className="space-y-8">
-      {/* Token Setup */}
-      <TokenManager onTokensChange={handleTokensChange} />
+      {/* Setup Call-to-Action */}
+      {!isConfigured && (
+        <div className="border border-blue-200 rounded-lg p-6 bg-blue-50">
+          <div className="text-center">
+            <Settings className="h-12 w-12 mx-auto mb-4 text-blue-600" />
+            <h2 className="text-xl font-bold text-blue-900 mb-2">
+              Welcome to Newsletter Builder!
+            </h2>
+            <p className="text-blue-800 mb-6">
+              Get started by configuring your GitHub repository and API keys.
+              Everything is stored locally and securely.
+            </p>
+            <Link href="/settings" className="btn-primary">
+              <Settings className="h-4 w-4 mr-2" />
+              Configure Settings
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Workflow Overview */}
-      <div className="border-t pt-8">
+      <div className={!isConfigured ? "border-t pt-8" : ""}>
         <h3 className="text-lg font-semibold text-gray-900 mb-6 text-center">
           how it works
         </h3>
@@ -59,7 +60,7 @@ export default function HomePage() {
             <Link
               href="/links"
               className={`btn-secondary w-full flex items-center justify-center space-x-2 ${
-                !hasRequiredTokens ? "opacity-50 cursor-not-allowed" : ""
+                !isConfigured ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <span>save links</span>
@@ -84,7 +85,7 @@ export default function HomePage() {
             <Link
               href="/builder"
               className={`btn-secondary w-full flex items-center justify-center space-x-2 ${
-                !hasRequiredTokens ? "opacity-50 cursor-not-allowed" : ""
+                !isConfigured ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <span>build newsletter</span>
@@ -108,9 +109,7 @@ export default function HomePage() {
             <Link
               href="/export"
               className={`btn-secondary w-full flex items-center justify-center space-x-2 ${
-                !tokens.githubOwner || !tokens.githubRepo || !tokens.github
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
+                !isConfigured ? "opacity-50 cursor-not-allowed" : ""
               }`}
             >
               <span>export newsletter</span>
@@ -185,40 +184,68 @@ export default function HomePage() {
       </div>
 
       {/* Getting Started Guide */}
-      {!hasRequiredTokens && (
+      {!isConfigured && (
         <div className="border-t pt-8">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="font-semibold text-blue-900 mb-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+            <h3 className="font-semibold text-gray-900 mb-4">
               quick setup guide
             </h3>
-            <div className="space-y-3 text-blue-800">
+            <div className="space-y-3 text-gray-700">
               <div className="flex items-start space-x-2">
                 <span className="font-medium">1.</span>
-                <span>
-                  set your github username and choose a repository name for
-                  storing data
-                </span>
+                <span>Create a GitHub repository to store your data</span>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="font-medium">2.</span>
                 <span>
-                  create a github personal access token with repo permissions
+                  Generate a GitHub Personal Access Token with 'repo'
+                  permissions
                 </span>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="font-medium">3.</span>
-                <span>get an openai api key with gpt-4 access</span>
+                <span>
+                  Get an OpenAI API key for AI summarization and newsletter
+                  generation
+                </span>
               </div>
               <div className="flex items-start space-x-2">
                 <span className="font-medium">4.</span>
                 <span>
-                  optionally add your kit.com api key for direct publishing
+                  (Optional) Add Kit.com API key for direct publishing
                 </span>
               </div>
-              <div className="flex items-start space-x-2">
-                <span className="font-medium">5.</span>
-                <span>start building your first newsletter! ☕</span>
-              </div>
+            </div>
+            <div className="mt-4 pt-4 border-t">
+              <Link
+                href="/settings"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                → Configure everything in Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isConfigured && (
+        <div className="border-t pt-8">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 text-center">
+            <h3 className="font-semibold text-green-900 mb-2">
+              🎉 You're all set!
+            </h3>
+            <p className="text-green-800 mb-4">
+              Your newsletter builder is configured and ready to use. Start by
+              saving some links!
+            </p>
+            <div className="flex justify-center space-x-3">
+              <Link href="/links" className="btn-primary">
+                Save Your First Link
+              </Link>
+              <Link href="/settings" className="btn-secondary">
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Settings
+              </Link>
             </div>
           </div>
         </div>
