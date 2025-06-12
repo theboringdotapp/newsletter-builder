@@ -23,8 +23,7 @@ export class NewsletterGenerator {
             content: `Generate a succinct title for this newsletter. Highlight top links in the email. The title should be sucint. Make sure it includes the most important bits right away (new models for example).\n\nContent:\n${newsletterContent}\n\nTitle:`,
           },
         ],
-        max_tokens: 25,
-        temperature: 0.4,
+
         stop: ["\n"],
       });
 
