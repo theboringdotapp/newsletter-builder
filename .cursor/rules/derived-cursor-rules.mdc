@@ -84,6 +84,7 @@ globs: *
 -   React Hook Dependency Warnings: Add the missing dependencies to the dependency array of the `useEffect` hook, or refactor the code if adding them causes unwanted effects.
 -   Unescaped Apostrophes in JSX: Replace `'` with `&apos;` or another valid HTML entity in JSX.
 -   Parsing error: Identifier expected.
+-   `useSearchParams()` should be wrapped in a suspense boundary at page "/links": In Next.js 13+ (with the App Router), the use of `useSearchParams` (and other client-side navigation hooks like `usePathname`, `useRouter`) must be inside a `<Suspense>` boundary. Move the code using `useSearchParams` into a child component, and wrap it in `<Suspense>` in the parent.
 
 ## CODING STANDARDS
 
@@ -131,6 +132,7 @@ globs: *
 
 -   Adhere to React best practices for component structure and data flow.
 -   To prevent focus loss and unnecessary re-renders, always define components outside of the parent component's render function. Defining components inside another component causes them to be recreated on every render, leading to state loss and UI instability.
+-   When using `useSearchParams` in Next.js 13+ (with the App Router), ensure the component (or part of the component) that uses `useSearchParams` is wrapped in a `<Suspense>` boundary. This may require refactoring the component to move the logic using `useSearchParams` into a child component.
 
 ### API ROUTES
 
