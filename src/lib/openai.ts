@@ -240,7 +240,7 @@ Structure the newsletter exactly like this:
 
 Format requirements:
 - Keep intro to max 1 line
-- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
+- For each link: <a href="URL">Title</a> followed by the summary on the next line
 - No extra commentary beyond the provided summaries
 - Footer must be exactly 1 line asking for feedback
 - Tone: Direct, stoic, yet friendly - no fluff
@@ -258,11 +258,13 @@ CRITICAL SYSTEM REQUIREMENTS (DO NOT MODIFY):
 - For each link: <a href="URL">Title</a> followed by the summary on the next line
 - Use clean HTML formatting with proper anchor tags. This will be used inside an email template later. DO NOT include <html> and <body> tags.
 - DO NOT include single quotes with the text "html" on the beggining or end
+- Use dashes or similar to separate the footer from the content.
 - You must break lines properly using <br>. Create a clear spacing between links and categories.
+- You must use <p> for paragraphs after each link. Introduction and footer must be in a separate paragraph.
 - If the summary for a given link is too long, you may chose to remove some information and keep only the most important parts
 - You may use bold text to highlight important information <b>
-- You may use bullet points to improve readability <ul><li> 
-- Split the links into categories, for example: "Models", "Tools", "Worth A Read", "News", "theboring.app updates". Use <h2> for the category title. You may use ascii emojis to make it more engaging.
+- You may use bullet points to improve readability <ul><li>. Keep a maximum of 3 bullet points per link.
+- Split the links into categories, for example: "Models", "Tools", "Worth A Read", "News", "theboring.app updates". Use <h2> for the category title.
 - Make titles clickable using <a href="URL">Title</a> format
 - Links and content data will be provided in the user message - do not make up any information, but feel free to make it more concise`;
 
