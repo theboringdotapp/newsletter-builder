@@ -82,7 +82,7 @@ Guidelines:
 
     // Generate title and summary using OpenAI
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "o4-mini",
       messages: [
         {
           role: "system",

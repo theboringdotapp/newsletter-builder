@@ -8,12 +8,45 @@ export class NewsletterGenerator {
     this.openai = new OpenAI({ apiKey });
   }
 
+  async generateTitle(newsletterContent: string): Promise<string> {
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a newsletter title writer. Your titles are short, direct, and highlight the most important news, like new AI models. Maximum 60 characters.",
+          },
+          {
+            role: "user",
+            content: `Generate a succinct title for this newsletter. Highlight top links in the email. The title should be sucint. Make sure it includes the most important bits right away (new models for example).\n\nContent:\n${newsletterContent}\n\nTitle:`,
+          },
+        ],
+        max_tokens: 25,
+        temperature: 0.4,
+        stop: ["\n"],
+      });
+
+      return (
+        response.choices[0]?.message?.content?.replace(/"/g, "") ||
+        "theboring.app newsletter"
+      );
+    } catch (error) {
+      console.error("Error generating newsletter title:", error);
+      return "The Boring Newsletter"; // Fallback title
+    }
+  }
+
   async generateNewsletter(
     links: SavedLink[],
     thoughts: Thought[],
     customPrompt?: string,
     additionalInstructions?: string
-  ): Promise<string> {
+  ): Promise<{
+    content: string;
+    title: string;
+  }> {
     const prompt = this.buildPrompt(links, thoughts, additionalInstructions);
 
     // Use custom prompt if provided, otherwise use default
@@ -37,7 +70,7 @@ export class NewsletterGenerator {
 
     try {
       const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4.1",
         messages: [
           {
             role: "system",
@@ -49,13 +82,20 @@ export class NewsletterGenerator {
           },
         ],
         max_tokens: 2500,
-        temperature: 0.7,
+        temperature: 0.4,
       });
 
-      return (
+      const content =
         response.choices[0]?.message?.content ||
-        "Error generating newsletter content"
-      );
+        "Error generating newsletter content";
+
+      if (content === "Error generating newsletter content") {
+        return { content, title: "Error" };
+      }
+
+      const title = await this.generateTitle(content);
+
+      return { content, title };
     } catch (error) {
       console.error("Error generating newsletter:", error);
       throw error;
@@ -82,51 +122,16 @@ Content to include:
 `;
 
     // Add tools and models section
-    const tools = links.filter(
-      (link) => link.category === "tool" && link.selected
-    );
-    const models = links.filter(
-      (link) => link.category === "model" && link.selected
-    );
-    const articles = links.filter(
-      (link) => link.category === "article" && link.selected
-    );
+    const selectedLinks = links.filter((link) => link.selected);
 
-    if (tools.length > 0) {
-      prompt += "## AI Tools:\n\n";
-      tools.forEach((tool) => {
-        prompt += `Title: ${tool.title || "Untitled Tool"}\n`;
-        prompt += `URL: ${tool.url}\n`;
-        if (tool.description) {
-          prompt += `Summary: ${tool.description}\n`;
-        }
-        prompt += "\n";
-      });
-    }
-
-    if (models.length > 0) {
-      prompt += "## AI Models:\n\n";
-      models.forEach((model) => {
-        prompt += `Title: ${model.title || "Untitled Model"}\n`;
-        prompt += `URL: ${model.url}\n`;
-        if (model.description) {
-          prompt += `Summary: ${model.description}\n`;
-        }
-        prompt += "\n";
-      });
-    }
-
-    if (articles.length > 0) {
-      prompt += "## Articles:\n\n";
-      articles.forEach((article) => {
-        prompt += `Title: ${article.title || "Untitled Article"}\n`;
-        prompt += `URL: ${article.url}\n`;
-        if (article.description) {
-          prompt += `Summary: ${article.description}\n`;
-        }
-        prompt += "\n";
-      });
-    }
+    selectedLinks.forEach((link) => {
+      prompt += `Title: ${link.title || "Untitled"}\n`;
+      prompt += `URL: ${link.url}\n`;
+      if (link.description) {
+        prompt += `Summary: ${link.description}\n`;
+      }
+      prompt += "\n";
+    });
 
     // Add thoughts section
     const selectedThoughts = thoughts.filter((thought) => thought.selected);
@@ -250,14 +255,16 @@ export function getCustomNewsletterPromptWithSystemRequirements(): string {
   const systemRequirements = `
 
 CRITICAL SYSTEM REQUIREMENTS (DO NOT MODIFY):
-- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
-- Use clean HTML formatting with proper anchor tags
+- For each link: <a href="URL">Title</a> followed by the summary on the next line
+- Use clean HTML formatting with proper anchor tags. This will be used inside an email template later. DO NOT include <html> and <body> tags.
 - DO NOT include single quotes with the text "html" on the beggining or end
+- You must break lines properly using <br>. Create a clear spacing between links and categories.
 - If the summary for a given link is too long, you may chose to remove some information and keep only the most important parts
-- You may use bold text to highlight important information
-- You may use bullet points to improve readability
-- Make titles clickable using **<a href="URL">Title</a>** format
-- Links and content data will be provided in the user message - use exactly as given`;
+- You may use bold text to highlight important information <b>
+- You may use bullet points to improve readability <ul><li> 
+- Split the links into categories, for example: "Models", "Tools", "Worth A Read", "News", "theboring.app updates". Use <h2> for the category title. You may use ascii emojis to make it more engaging.
+- Make titles clickable using <a href="URL">Title</a> format
+- Links and content data will be provided in the user message - do not make up any information, but feel free to make it more concise`;
 
   return customPart + systemRequirements;
 }

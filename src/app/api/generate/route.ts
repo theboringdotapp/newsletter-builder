@@ -35,7 +35,10 @@ export async function POST(request: Request) {
       additionalInstructions
     );
 
-    return NextResponse.json({ content });
+    return NextResponse.json({
+      content: content.content,
+      title: content.title,
+    });
   } catch (error) {
     console.error("Error generating newsletter:", error);
     return NextResponse.json(

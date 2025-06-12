@@ -136,6 +136,7 @@ function SortableLinkItem({
 export default function BuilderPage() {
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [generatedContent, setGeneratedContent] = useState("");
+  const [newsletterTitle, setNewsletterTitle] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -321,6 +322,7 @@ export default function BuilderPage() {
 
       const data = await response.json();
       setGeneratedContent(data.content);
+      setNewsletterTitle(data.title || "");
       addToast("Newsletter generated successfully!", "success");
     } catch (error) {
       console.error("Error generating newsletter:", error);
@@ -419,6 +421,7 @@ export default function BuilderPage() {
 
     setIsExporting(true);
     try {
+      const subject = newsletterTitle || generateSubject();
       const response = await fetch("/api/export/kit", {
         method: "POST",
         headers: {
@@ -432,7 +435,7 @@ export default function BuilderPage() {
         body: JSON.stringify({
           week: getCurrentWeekString(),
           content: contentToExport,
-          subject: generateSubject(),
+          subject,
           previewText: generatePreviewText(),
         }),
       });
@@ -875,30 +878,67 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                     </div>
 
                     <div className="p-4 sm:p-6">
+                      {newsletterTitle && (
+                        <h1 className="text-lg ml-4 font-bold newsletter-preview-title">
+                          {newsletterTitle}
+                        </h1>
+                      )}
                       {generatedContent ? (
-                        <div className="border border-neutral-200 rounded-lg overflow-hidden">
-                          {isEditingPreview ? (
-                            <div className="relative">
-                              <div className="p-2 bg-neutral-50 border-b border-neutral-200 text-xs text-neutral-600">
-                                Editing HTML - Be careful with formatting
-                              </div>
-                              <textarea
-                                value={editableContent}
-                                onChange={(e) =>
-                                  setEditableContent(e.target.value)
-                                }
-                                className="w-full p-4 font-mono text-sm border-0 resize-none focus:outline-none min-h-[400px] max-h-[600px]"
-                                placeholder="HTML content will appear here..."
-                              />
-                            </div>
-                          ) : (
-                            <div
-                              className="p-4 prose prose-neutral prose-sm max-w-none overflow-auto max-h-[600px] prose-headings:text-neutral-900 prose-h1:text-xl prose-h1:font-bold prose-h1:mb-4 prose-h2:text-lg prose-h2:font-semibold prose-h2:mb-3 prose-h3:text-base prose-h3:font-medium prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-li:mb-1 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:font-semibold"
-                              dangerouslySetInnerHTML={{
-                                __html: generatedContent,
-                              }}
-                            />
-                          )}
+                        <div className="p-4 max-w-none overflow-auto max-h-[600px]">
+                          <style>{`
+                            .newsletter-preview h1 {
+                              font-size: 1.5rem;
+                              font-weight: bold;
+                              margin-bottom: 1.25rem;
+                              color: #171717;
+                            }
+                            .newsletter-preview h2 {
+                              font-size: 1.125rem;
+                              font-weight: 600;
+                              margin-bottom: 1rem;
+                              color: #171717;
+                            }
+                            .newsletter-preview h3 {
+                              font-size: 1rem;
+                              font-weight: 500;
+                              margin-bottom: 0.75rem;
+                              color: #171717;
+                            }
+                            .newsletter-preview p {
+                              margin-bottom: 0.75rem;
+                            }
+                            .newsletter-preview ul {
+                              margin-bottom: 1rem;
+                              padding-left: 1.5rem;
+                              list-style-type: disc;
+                            }
+                            .newsletter-preview ol {
+                              margin-bottom: 1rem;
+                              padding-left: 1.5rem;
+                              list-style-type: decimal;
+                            }
+                            .newsletter-preview li {
+                              margin-bottom: 0.25rem;
+                              margin-left: 0.5rem;
+                            }
+                            .newsletter-preview a {
+                              color: #2563eb;
+                              text-decoration: none;
+                            }
+                            .newsletter-preview a:hover {
+                              text-decoration: underline;
+                            }
+                            .newsletter-preview strong, .newsletter-preview b {
+                              font-weight: 600;
+                            }
+                          `}</style>
+
+                          <div
+                            className="newsletter-preview"
+                            dangerouslySetInnerHTML={{
+                              __html: generatedContent,
+                            }}
+                          />
                         </div>
                       ) : (
                         <div className="text-center py-8">
