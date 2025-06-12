@@ -1,20 +1,15 @@
 import { NextResponse } from "next/server";
-import { GitHubStorage, extractGitHubConfig } from "@/lib/github";
 import { KitService, extractKitToken } from "@/lib/kit";
 
 export async function POST(request: Request) {
   try {
-    const { token, owner, repo, branch } = extractGitHubConfig(request);
-    const github = new GitHubStorage(token, owner, repo, branch);
+    const { week, content, subject, previewText } = await request.json();
 
-    const { week } = await request.json();
-
-    // Get newsletter data from GitHub
-    const newsletterData = await github.getNewsletterData(week);
-    if (!newsletterData || !newsletterData.generatedContent) {
+    // Validate that content is provided
+    if (!content || !subject || !previewText) {
       return NextResponse.json(
-        { error: "Newsletter not found or has no content" },
-        { status: 404 }
+        { error: "Newsletter content, subject, and preview text are required" },
+        { status: 400 }
       );
     }
 
@@ -31,21 +26,49 @@ export async function POST(request: Request) {
 
     // Send to Kit.com
     const kit = new KitService(kitApiKey);
-    const result = await kit.createBroadcastDraft(
-      `Weekly AI Newsletter ${week}`,
-      newsletterData.generatedContent,
-      `Your weekly dose of AI tools, models, and insights - Week ${week}`
-    );
+    try {
+      const result = await kit.createBroadcastDraft(
+        subject,
+        content,
+        previewText
+      );
 
-    return NextResponse.json({
-      success: true,
-      result,
-      week,
-    });
-  } catch (error) {
+      return NextResponse.json({
+        success: true,
+        result,
+        week,
+      });
+    } catch (kitError: any) {
+      // Log the detailed Kit.com error
+      console.error("Kit.com API Error:", {
+        message: kitError.message,
+        response: kitError.response?.data,
+        status: kitError.response?.status,
+        statusText: kitError.response?.statusText,
+      });
+
+      // Return more specific error information
+      const errorMessage =
+        kitError.response?.data?.errors?.[0] ||
+        kitError.response?.data?.error ||
+        kitError.message ||
+        "Unknown Kit.com API error";
+
+      return NextResponse.json(
+        {
+          error: `Kit.com API Error: ${errorMessage}`,
+          details: kitError.response?.data || kitError.message,
+        },
+        { status: kitError.response?.status || 500 }
+      );
+    }
+  } catch (error: any) {
     console.error("Error publishing to Kit.com:", error);
     return NextResponse.json(
-      { error: "Failed to publish newsletter" },
+      {
+        error: "Failed to publish newsletter",
+        details: error.message,
+      },
       { status: 500 }
     );
   }

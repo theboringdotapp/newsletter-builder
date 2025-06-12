@@ -38,7 +38,6 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import ContentEditable from "react-contenteditable";
 
 interface ToastMessage {
   id: number;
@@ -264,12 +263,11 @@ export default function BuilderPage() {
       // Save changes
       setGeneratedContent(editableContent);
       addToast("Changes saved", "success");
+    } else {
+      // Load current content for editing
+      setEditableContent(generatedContent);
     }
     setIsEditingPreview(!isEditingPreview);
-  };
-
-  const handleContentChange = (evt: React.FormEvent<HTMLDivElement>) => {
-    setEditableContent(evt.currentTarget.innerHTML);
   };
 
   const parseThoughts = (): Thought[] => {
@@ -598,12 +596,12 @@ export default function BuilderPage() {
         {hasRequiredTokens && (
           <div className="max-w-7xl mx-auto">
             {/* Main Content Area */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
               {/* Left Column - Input */}
               <div className="lg:col-span-3 space-y-6">
                 {/* Step 1: Select Links */}
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                  <div className="p-6 border-b border-neutral-100">
+                  <div className="p-4 sm:p-6 border-b border-neutral-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div
@@ -637,7 +635,7 @@ export default function BuilderPage() {
                     </div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <DndContext
                       sensors={sensors}
                       collisionDetection={closestCenter}
@@ -681,7 +679,7 @@ export default function BuilderPage() {
 
                 {/* Step 2: Add Thoughts */}
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                  <div className="p-6 border-b border-neutral-100">
+                  <div className="p-4 sm:p-6 border-b border-neutral-100">
                     <div className="flex items-center gap-3">
                       <div
                         className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
@@ -709,7 +707,7 @@ export default function BuilderPage() {
                     </div>
                   </div>
 
-                  <div className="p-6">
+                  <div className="p-4 sm:p-6">
                     <p className="text-neutral-600 mb-4">
                       Share your insights, learnings, or observations from this
                       week. Each paragraph becomes a separate thought.
@@ -734,7 +732,7 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
                   <button
                     onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
-                    className="w-full p-6 text-left hover:bg-neutral-50 transition-colors"
+                    className="w-full p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -758,31 +756,62 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                   </button>
 
                   {showAdvancedPrompt && (
-                    <div className="px-6 pb-6 border-t border-neutral-100">
-                      <p className="text-neutral-600 mb-4 mt-4">
-                        Give specific instructions for this newsletter&apos;s
-                        tone, organization, or focus.
-                      </p>
-                      <textarea
-                        value={additionalInstructions}
-                        onChange={(e) =>
-                          setAdditionalInstructions(e.target.value)
-                        }
-                        className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
-                        rows={3}
-                        placeholder="e.g., 'Put tools first, then models' or 'Use a more casual tone' or 'Focus on practical benefits for startups'"
-                      />
+                    <div className="border-t border-neutral-100">
+                      <div className="p-4 sm:p-6">
+                        <p className="text-neutral-600 mb-4">
+                          Add specific instructions for this newsletter&apos;s
+                          generation. This will be combined with your default
+                          prompt.
+                        </p>
+
+                        <textarea
+                          value={additionalInstructions}
+                          onChange={(e) =>
+                            setAdditionalInstructions(e.target.value)
+                          }
+                          className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
+                          rows={4}
+                          placeholder="For example: Focus more on the practical applications of these tools, or group similar tools together, or add more context about why these are important this week..."
+                        />
+                      </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Mobile Generate Button */}
+                <div className="lg:hidden">
+                  {!generatedContent && (
+                    <button
+                      onClick={generateNewsletter}
+                      disabled={isGenerating || selectedLinksCount === 0}
+                      className={`btn w-full py-4 text-lg ${
+                        selectedLinksCount === 0
+                          ? "btn-secondary opacity-50 cursor-not-allowed"
+                          : "btn-primary"
+                      }`}
+                    >
+                      {!isGenerating && <Sparkles className="w-5 h-5" />}
+                      {isGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Generating newsletter...
+                        </>
+                      ) : selectedLinksCount === 0 ? (
+                        "Select links to generate"
+                      ) : (
+                        "Generate Newsletter"
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
 
               {/* Right Column - Preview & Export */}
               <div className="lg:col-span-2">
-                <div className="sticky top-24 space-y-6">
+                <div className="lg:sticky lg:top-24 space-y-6">
                   {/* Step 3: Preview */}
                   <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                    <div className="p-6 border-b border-neutral-100">
+                    <div className="p-4 sm:p-6 border-b border-neutral-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div
@@ -824,16 +853,20 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                                 ) : (
                                   <Sparkles className="w-4 h-4" />
                                 )}
-                                {isGenerating
-                                  ? "Regenerating..."
-                                  : "Regenerate"}
+                                <span className="hidden sm:inline ml-2">
+                                  {isGenerating
+                                    ? "Regenerating..."
+                                    : "Regenerate"}
+                                </span>
                               </button>
                               <button
                                 onClick={togglePreviewEdit}
                                 className="btn btn-ghost btn-sm"
                               >
                                 <Edit3 className="w-4 h-4" />
-                                {isEditingPreview ? "Save" : "Edit"}
+                                <span className="hidden sm:inline ml-2">
+                                  {isEditingPreview ? "Save" : "Edit"}
+                                </span>
                               </button>
                             </>
                           )}
@@ -841,19 +874,26 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                       </div>
                     </div>
 
-                    <div className="p-6">
+                    <div className="p-4 sm:p-6">
                       {generatedContent ? (
                         <div className="border border-neutral-200 rounded-lg overflow-hidden">
                           {isEditingPreview ? (
-                            <ContentEditable
-                              html={editableContent}
-                              disabled={false}
-                              onChange={handleContentChange}
-                              className="p-4 outline-none min-h-[200px] prose prose-sm max-w-none"
-                            />
+                            <div className="relative">
+                              <div className="p-2 bg-neutral-50 border-b border-neutral-200 text-xs text-neutral-600">
+                                Editing HTML - Be careful with formatting
+                              </div>
+                              <textarea
+                                value={editableContent}
+                                onChange={(e) =>
+                                  setEditableContent(e.target.value)
+                                }
+                                className="w-full p-4 font-mono text-sm border-0 resize-none focus:outline-none min-h-[400px] max-h-[600px]"
+                                placeholder="HTML content will appear here..."
+                              />
+                            </div>
                           ) : (
                             <div
-                              className="p-4 prose prose-sm max-w-none"
+                              className="p-4 prose prose-neutral prose-sm max-w-none overflow-auto max-h-[600px] prose-headings:text-neutral-900 prose-h1:text-xl prose-h1:font-bold prose-h1:mb-4 prose-h2:text-lg prose-h2:font-semibold prose-h2:mb-3 prose-h3:text-base prose-h3:font-medium prose-h3:mb-2 prose-p:mb-3 prose-ul:mb-3 prose-li:mb-1 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-strong:font-semibold"
                               dangerouslySetInnerHTML={{
                                 __html: generatedContent,
                               }}
@@ -871,65 +911,9 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                     </div>
                   </div>
 
-                  {/* Step 4: Export */}
-                  {generatedContent && (
-                    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                      <div className="p-6 border-b border-neutral-100">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center">
-                            4
-                          </div>
-                          <div>
-                            <h3 className="text-lg font-semibold text-neutral-900">
-                              Export
-                            </h3>
-                            <p className="text-sm text-neutral-600">
-                              Share your newsletter
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-6 space-y-3">
-                        <button
-                          onClick={exportToKit}
-                          disabled={isExporting || !kitToken}
-                          className={`btn w-full ${
-                            !kitToken
-                              ? "btn-secondary opacity-50"
-                              : "btn-primary"
-                          }`}
-                        >
-                          <Send className="w-4 h-4" />
-                          {isExporting
-                            ? "Creating draft..."
-                            : !kitToken
-                            ? "Kit.com (Setup required)"
-                            : "Create Kit.com Draft"}
-                        </button>
-
-                        <button
-                          onClick={copyToClipboard}
-                          className="btn btn-secondary w-full"
-                        >
-                          <Copy className="w-4 h-4" />
-                          Copy to Clipboard
-                        </button>
-
-                        <button
-                          onClick={exportToJson}
-                          className="btn btn-ghost w-full"
-                        >
-                          <Download className="w-4 h-4" />
-                          Download JSON
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Initial Generate Button - only show when no content */}
-                  {!generatedContent && (
-                    <div className="mt-6">
+                  {/* Desktop Generate Button */}
+                  <div className="hidden lg:block">
+                    {!generatedContent && (
                       <button
                         onClick={generateNewsletter}
                         disabled={isGenerating || selectedLinksCount === 0}
@@ -951,6 +935,64 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                           "Generate Newsletter"
                         )}
                       </button>
+                    )}
+                  </div>
+
+                  {/* Step 4: Export */}
+                  {generatedContent && (
+                    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                      <div className="p-4 sm:p-6 border-b border-neutral-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center">
+                            4
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-neutral-900">
+                              Export
+                            </h3>
+                            <p className="text-sm text-neutral-600">
+                              Share your newsletter
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-4 sm:p-6 space-y-3">
+                        <button
+                          onClick={exportToKit}
+                          disabled={isExporting || !kitToken}
+                          className={`btn w-full ${
+                            !kitToken
+                              ? "btn-secondary opacity-50"
+                              : "btn-primary"
+                          }`}
+                        >
+                          <Send className="w-4 h-4" />
+                          <span className="ml-2">
+                            {isExporting
+                              ? "Creating draft..."
+                              : !kitToken
+                              ? "Kit.com (Setup required)"
+                              : "Create Kit.com Draft"}
+                          </span>
+                        </button>
+
+                        <button
+                          onClick={copyToClipboard}
+                          className="btn btn-secondary w-full"
+                        >
+                          <Copy className="w-4 h-4" />
+                          <span className="ml-2">Copy to Clipboard</span>
+                        </button>
+
+                        <button
+                          onClick={exportToJson}
+                          className="btn btn-ghost w-full"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span className="ml-2">Download JSON</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>

@@ -252,6 +252,10 @@ export function getCustomNewsletterPromptWithSystemRequirements(): string {
 CRITICAL SYSTEM REQUIREMENTS (DO NOT MODIFY):
 - For each link: **<a href="URL">Title</a>** followed by the summary on the next line
 - Use clean HTML formatting with proper anchor tags
+- DO NOT include single quotes with the text "html" on the beggining or end
+- If the summary for a given link is too long, you may chose to remove some information and keep only the most important parts
+- You may use bold text to highlight important information
+- You may use bullet points to improve readability
 - Make titles clickable using **<a href="URL">Title</a>** format
 - Links and content data will be provided in the user message - use exactly as given`;
 

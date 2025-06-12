@@ -25,12 +25,7 @@ export async function POST(request: Request) {
 
     // Always ensure system requirements are appended to protect core functionality
     const newsletterPrompt = customPrompt
-      ? customPrompt +
-        `\n\nCRITICAL SYSTEM REQUIREMENTS (DO NOT MODIFY):
-- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
-- Use clean HTML formatting with proper anchor tags
-- Make titles clickable using **<a href="URL">Title</a>** format
-- Links and content data will be provided in the user message - use exactly as given`
+      ? customPrompt + getCustomNewsletterPromptWithSystemRequirements()
       : getCustomNewsletterPromptWithSystemRequirements();
 
     const content = await generator.generateNewsletter(

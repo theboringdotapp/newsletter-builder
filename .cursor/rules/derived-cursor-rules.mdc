@@ -76,6 +76,8 @@ globs: *
 -   Try clearing Next.js cache: `rm -rf .next` and `npm run dev`.
 - The API call is missing the GitHub configuration headers
 -   String contains non ISO-8859-1 code point error: Occurs because HTTP headers can only contain ISO-8859-1 characters, but the custom prompt might contain special characters, emojis, or other Unicode characters. Ensure the custom prompt is encoded (base64) before sending it as a header.
+-   Newsletter not found or has no content: Occurs when trying to "Create Kit.com" newsletter.
+-   Kit.com API Error: Validation error: Email template not found
 
 ## CODING STANDARDS
 
@@ -255,7 +257,9 @@ your-newsletter-data-repo/
     -   The scrollable area should extend edge-to-edge for a better mobile scrolling experience.
 -   Safe area support should be added for devices with home indicators.
 -   Category buttons should have increased padding for easier selection on mobile.
+    -   The padding should be 4 for all category buttons
 -   Input fields should have larger heights for a better mobile typing experience.
+    -   The padding should be 4 for all input fields
 
 ## BUILD PAGE
 
@@ -307,6 +311,8 @@ your-newsletter-data-repo/
 -   Remove the Sparkle emoji when generating a newsletter (loading)
 -   After the newsletter has been generated, the generate button should say "regenerate" and should be near the preview box, not under the export box. Maybe it could even be side-by-side the edit button.
     -   The generate button should only appear when there's no content generated yet.
+- The Preview area must be wider on desktop.
+- The HTML tiles in the preview (h1, h2) must be correctly styled.
 
 ## PROJECT SCOPE
 
@@ -365,7 +371,6 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
     -   Removed Auto-Save Notification State: Eliminated `lastSaved` and `showSaved` state variables
     -   Removed Notification Logic: Removed all the code that was triggering state changes and timeouts in the `updateSetting` function
     -   Removed Notification UI: Removed the notification display from the JSX
-    -   Cleaned Up Imports: Removed the unused `Check` icon import
 -   The solution is to separate the "draft" state of the inputs from the "saved" state by:
     1.  Creating a second `localSettings` state. This will be updated instantly as you type, providing immediate feedback without lag or focus loss.
     2.  The `value` of each input will be tied to this `localSettings` state.
@@ -382,3 +387,126 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
 -   The application must always use the prompt saved on the client side for summarizing links. If no prompt is found, the backend's default will be used.
 -   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers, web scraping needs, and the need for proper headers.
 -   The newsletter generation route must also use the user's custom prompt.
+
+## LINKS PAGE
+
+-   Links on the links page (`@page.tsx`) must be displayed in a table format with tabs for "Active Links" and "Archived Links".
+-   The "Archived Links" button should be a tab on the table.
+-   The "Create Newsletter" CTA must be removed from the bottom of the links page.
+-   A lazy-loaded view for archived links must be implemented.
+    -   Archived links are retrieved from the `links/archive/` directory structure.
+-   Ensure `cursor-pointer` is applied to all clickable elements: tab buttons, link URLs (both active and archived), action buttons (open link, delete link), modal buttons (Cancel, AI Summarize, Save Link), and the "Add Your First Link" button.
+-   Auto-summarization:
+    -   Auto-summarization is optional and disabled by default.
+    -   The "Auto-summarization" toggle is displayed in the OpenAI API section of the settings page.
+    -   The toggle is only shown when an OpenAI API key is configured.
+    -   The default state is disabled (false).
+    -   The setting is saved as `auto_summarize` in localStorage.
+    -   The links page loads the auto-summarization preference on page load.
+    -   Auto-summarization is only triggered when:
+        -   URL is pasted
+        -   OpenAI API key exists
+        -   Auto-summarization is enabled in settings
+        -   Title and description are empty
+        -   1 second delay has passed
+    -   The "✨ Auto-fill with AI" button is always available regardless of the setting.
+-   When summarizing links, the custom prompt from `localStorage` will be sent in the `X-Custom-Prompt` header to the backend. If no prompt is found, the backend's default will be used.
+    -   The custom prompt must be base64 encoded before being sent as the `X-Custom-Prompt` header due to HTTP header restrictions on ISO-8859-1 characters.
+-   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers.
+-   The description is no longer being cropped, let the Newsletter generation crop it later on
+-   The links page must be fully mobile-friendly.
+    -   The header must stack vertically on mobile to prevent overflow.
+    -   The header title and badge should wrap properly without breaking the layout.
+    -   The "Add Link" button should be hidden on mobile in favor of the floating action button.
+-   The Add Link modal must be fully mobile-optimized.
+    -   The modal should take up the full height on mobile for better usability.
+    -   All buttons and inputs should have increased padding (`py-4`) for finger-friendly interaction.
+    -   There should be better spacing between form elements for a cleaner mobile experience.
+    -   The `touch-manipulation` CSS property should be added for responsive touch feedback.
+    -   The modal should close when tapping outside the content area.
+-   The floating action button should be enhanced for mobile.
+    -   The size should be increased from 56px to 64px (`w-16 h-16`) for easier tapping.
+    -   The plus icon should be increased to `w-7 h-7` for better visibility.
+    -   The button should only be visible on mobile (`sm:hidden`) to avoid redundancy.
+-   The table layout should be improved for mobile responsiveness.
+    -   Tables should scroll horizontally when content exceeds screen width.
+    -   Appropriate column widths should be set to prevent cramped layouts.
+    -   The scrollable area should extend edge-to-edge for a better mobile scrolling experience.
+-   Safe area support should be added for devices with home indicators.
+-   Category buttons should have increased padding for easier selection on mobile.
+    -   The padding should be 4 for all category buttons
+-   Input fields should have larger heights for a better mobile typing experience.
+    -   The padding should be 4 for all input fields
+
+## NAVIGATION COMPONENT
+
+- The Navigation component has a fixed layout that doesn't adapt well to mobile screens.
+- The navigation items and the logo are competing for space, causing overflow.
+- The Navigation component should be responsive.
+- The logo should be responsive: Shows "Newsletter Builder" on desktop (`sm:block`) and "NB" on mobile (`sm:hidden`).
+- Add `flex-shrink-0` to the logo to prevent logo compression.
+- Navigation items should use `flex-1 justify-center` to center them properly.
+- Navigation buttons should use `px-2 sm:px-3` for tighter mobile spacing.
+- Navigation buttons should have text labels hidden on mobile with `hidden sm:inline`, showing only icons.
+- Add `gap-4` to the main container and `min-w-0` to prevent overflow.
+- Settings button should remain consistently accessible.
+- Add `flex-shrink-0` to the settings button to prevent compression.
+
+## KIT.COM INTEGRATION
+
+-   Kit.com API Error: Validation error: Email template not found
+    -   Occurs because the email template ID does not exist in the user's Kit.com account.
+
+## BUILD PAGE
+
+-   The "Preview" in the Build page must render the HTML properly.
+-   When clicking edit in the Build page, the AI must show the RAW HTML, to prevent breaking its formatting.
+-   All links must be automatically selected by default.
+-   The newsletter preview should be editable after generation and before export.
+-   The order of links in the newsletter should be easily sortable, potentially via drag-and-drop functionality.
+-   Drag-and-Drop Link Sorting:
+    -   Use `@dnd-kit` library for smooth drag-and-drop functionality
+    -   Create a `SortableLinkItem` component with drag handles (⋮⋮)
+    -   Links can be reordered by dragging them up or down
+    -   Visual feedback with opacity changes during dragging
+-   Editable Newsletter Preview:
+    -   Add an "Edit" button next to the Newsletter Preview title
+    -   When clicked, transform the preview into an editable rich-text area using a textarea to display raw HTML.
+    -   Add a "Save Changes" button to confirm edits
+    -   All export functions (JSON, Kit.com, Copy) should use the edited content
+-   The "Generate Newsletter" button should be moved below the preview section.
+    -   The button should be visible even if no links are selected, but it should be disabled in this case.
+-   The preview box should be wider on desktop.
+-   Step-by-Step Flow:
+    -   **REMOVED**: Step indicators from the navbar are no longer needed.
+-   Improved Link Selection:
+    -   Beautiful card design with hover effects and smooth transitions
+    -   Custom selection indicators replacing checkboxes with circular indicators
+    -   Enhanced drag handles that appear on hover
+    -   Better visual hierarchy with improved spacing and typography
+-   Mobile-First Experience:
+    -   Responsive layout that works perfectly on all screen sizes
+    -   Touch-friendly interactions with proper sizing
+-   Advanced Features:
+    -   Collapsible AI Instructions section to keep the interface clean
+    -   Smooth animations and transitions throughout
+    -   Better visual feedback for all states (loading, generating, etc.)
+    -   Improved spacing and typography following Linear's design principles
+-   Arc Browser & Motion UI Inspiration:
+    -   Clean, minimal design without overwhelming colors
+    -   Subtle interactions with smooth hover states
+    -   Thoughtful spacing and visual hierarchy
+    -   Delightful micro-animations that feel natural
+    -   Focus on workflow rather than visual noise
+-   Key UX Improvements:
+    1.  Clear progression - Users always know where they are in the process
+    2.  Optional complexity - Advanced features are hidden until needed
+    3.  Mobile optimized - Works beautifully on phones with dedicated CTAs
+    4.  Visual consistency - Every element follows the same design language
+    5.  Joyful but professional - Engaging without being playful
+-   The interface should feel like a premium productivity tool, similar to Linear or Arc Browser, while maintaining focus on the core workflow of building newsletters efficiently.
+-   Remove the Sparkle emoji when generating a newsletter (loading)
+-   After the newsletter has been generated, the generate button should say "regenerate" and should be near the preview box, not under the export box. Maybe it could even be side-by-side the edit button.
+    -   The generate button should only appear when there's no content generated yet.
+- The Preview area must be wider on desktop.
+- The HTML tiles in the preview (h1, h2) must be correctly styled.
