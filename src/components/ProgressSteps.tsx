@@ -8,7 +8,7 @@ interface Step {
   id: string;
   title: string;
   href: string;
-  icon: any;
+  icon: React.ElementType;
 }
 
 const steps: Step[] = [

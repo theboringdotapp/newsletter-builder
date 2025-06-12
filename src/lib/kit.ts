@@ -1,5 +1,4 @@
 import axios from "axios";
-import { KitBroadcast } from "@/types";
 
 export class KitService {
   private apiKey: string;
@@ -58,6 +57,7 @@ export class KitService {
 
       console.log("Kit.com API Response:", response.status, response.data);
       return response.data;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error("Kit.com API Error Details:", {
         status: error.response?.status,

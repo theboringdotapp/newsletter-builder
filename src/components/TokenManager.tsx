@@ -122,9 +122,9 @@ export default function TokenManager({ onTokensChange }: TokenManagerProps) {
           welcome to theboring.app newsletter builder ☕
         </h2>
         <p className="text-gray-600">
-          to get started, you'll need to configure your github repository and
-          add your API tokens. everything is stored locally and never sent to
-          our servers.
+          to get started, you&apos;ll need to configure your github repository
+          and add your API tokens. everything is stored locally and never sent
+          to our servers.
         </p>
       </div>
 
@@ -275,8 +275,8 @@ export default function TokenManager({ onTokensChange }: TokenManagerProps) {
             )}
           </div>
           <p className="text-sm text-gray-600 mb-3">
-            for generating newsletter content with AI. you'll need access to
-            GPT-4.
+            for generating newsletter content with AI. you&apos;ll need access
+            to GPT-4.
           </p>
           <div className="flex space-x-2">
             <div className="flex-1 relative">

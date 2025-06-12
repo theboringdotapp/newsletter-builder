@@ -17,7 +17,8 @@ export async function POST(request: Request) {
     let kitApiKey: string;
     try {
       kitApiKey = extractKitToken(request);
-    } catch (error) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
       return NextResponse.json(
         { error: "Kit.com API key required for direct publishing" },
         { status: 400 }
@@ -38,6 +39,7 @@ export async function POST(request: Request) {
         result,
         week,
       });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (kitError: any) {
       // Log the detailed Kit.com error
       console.error("Kit.com API Error:", {
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
         { status: kitError.response?.status || 500 }
       );
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error publishing to Kit.com:", error);
     return NextResponse.json(

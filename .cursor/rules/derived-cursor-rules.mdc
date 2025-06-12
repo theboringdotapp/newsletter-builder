@@ -78,6 +78,12 @@ globs: *
 -   String contains non ISO-8859-1 code point error: Occurs because HTTP headers can only contain ISO-8859-1 characters, but the custom prompt might contain special characters, emojis, or other Unicode characters. Ensure the custom prompt is encoded (base64) before sending it as a header.
 -   Newsletter not found or has no content: Occurs when trying to "Create Kit.com" newsletter.
 -   Kit.com API Error: Validation error: Email template not found
+    -   Occurs because the email template ID does not exist in the user's Kit.com account.
+-   Unused Imports: Remove the unused imports/variables.
+-   Unexpected `any` Type: Replace `any` with a more specific type if possible, or use `unknown` if you must, or add a comment to disable the rule for that line if you have no choice.
+-   React Hook Dependency Warnings: Add the missing dependencies to the dependency array of the `useEffect` hook, or refactor the code if adding them causes unwanted effects.
+-   Unescaped Apostrophes in JSX: Replace `'` with `&apos;` or another valid HTML entity in JSX.
+-   Parsing error: Identifier expected.
 
 ## CODING STANDARDS
 
@@ -263,6 +269,8 @@ your-newsletter-data-repo/
 
 ## BUILD PAGE
 
+-   The "Preview" in the Build page must render the HTML properly.
+-   When clicking edit in the Build page, the AI must show the RAW HTML, to prevent breaking its formatting.
 -   All links must be automatically selected by default.
 -   The newsletter preview should be editable after generation and before export.
 -   The order of links in the newsletter should be easily sortable, potentially via drag-and-drop functionality.
@@ -273,8 +281,7 @@ your-newsletter-data-repo/
     -   Visual feedback with opacity changes during dragging
 -   Editable Newsletter Preview:
     -   Add an "Edit" button next to the Newsletter Preview title
-    -   When clicked, transform the preview into an editable rich-text area
-    -   Use `react-contenteditable` for in-place editing
+    -   When clicked, transform the preview into an editable rich-text area using a textarea to display raw HTML.
     -   Add a "Save Changes" button to confirm edits
     -   All export functions (JSON, Kit.com, Copy) should use the edited content
 -   The "Generate Newsletter" button should be moved below the preview section.
@@ -375,68 +382,9 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
     1.  Creating a second `localSettings` state. This will be updated instantly as you type, providing immediate feedback without lag or focus loss.
     2.  The `value` of each input will be tied to this `localSettings` state.
     3.  Using a `useEffect` hook to watch for changes in `localSettings`. When you stop typing for a moment, it will automatically save the changes to localStorage and the main `settings` state in the background.
--   The issue is that the auto-save notification is triggering page reflows or the `showSaved` state change is causing the component to re-render and lose focus.
--   The issue is likely that the `updateSetting` function is still being called somewhere, or there could be other re-renders happening.
--   The issue might be that the `updateSetting` function is still being called somewhere, or there could be other re-renders happening.
--   Every time any input changes, it triggers the `showSaved` state change, which causes a re-render and layout shift that makes the page lose focus and scroll.
--   The focus loss is still happening because the `updateSetting` function is calling `setSettings`, which triggers a re-render of the entire component. When the component re-renders, React recreates the input elements and loses focus.
--   The issue is that updating the main `settings` state on every keystroke forces React to re-render the entire page, which causes the input to lose focus. The `setTimeout` was a clumsy attempt to fix this, but it just delayed the problem and introduced lag.
--   The inputs are still losing focus after typing anything.
--   There is a conflict between the "draft" state that you are typing into (`localSettings`) and the "saved" state that controls parts of the UI (`settings`).
-    -   When you type, `localSettings` updates instantly. But the section for "AI Prompt Customization" only appears based on the *saved* `settings.openaiApiKey`. When my auto-save logic finally updates the main `settings` state, React sees that the `settings` object has changed and it re-renders the component, causing the input to lose focus.
 -   The application must always use the prompt saved on the client side for summarizing links. If no prompt is found, the backend's default will be used.
 -   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers, web scraping needs, and the need for proper headers.
 -   The newsletter generation route must also use the user's custom prompt.
-
-## LINKS PAGE
-
--   Links on the links page (`@page.tsx`) must be displayed in a table format with tabs for "Active Links" and "Archived Links".
--   The "Archived Links" button should be a tab on the table.
--   The "Create Newsletter" CTA must be removed from the bottom of the links page.
--   A lazy-loaded view for archived links must be implemented.
-    -   Archived links are retrieved from the `links/archive/` directory structure.
--   Ensure `cursor-pointer` is applied to all clickable elements: tab buttons, link URLs (both active and archived), action buttons (open link, delete link), modal buttons (Cancel, AI Summarize, Save Link), and the "Add Your First Link" button.
--   Auto-summarization:
-    -   Auto-summarization is optional and disabled by default.
-    -   The "Auto-summarization" toggle is displayed in the OpenAI API section of the settings page.
-    -   The toggle is only shown when an OpenAI API key is configured.
-    -   The default state is disabled (false).
-    -   The setting is saved as `auto_summarize` in localStorage.
-    -   The links page loads the auto-summarization preference on page load.
-    -   Auto-summarization is only triggered when:
-        -   URL is pasted
-        -   OpenAI API key exists
-        -   Auto-summarization is enabled in settings
-        -   Title and description are empty
-        -   1 second delay has passed
-    -   The "✨ Auto-fill with AI" button is always available regardless of the setting.
--   When summarizing links, the custom prompt from `localStorage` will be sent in the `X-Custom-Prompt` header to the backend. If no prompt is found, the backend's default will be used.
-    -   The custom prompt must be base64 encoded before being sent as the `X-Custom-Prompt` header due to HTTP header restrictions on ISO-8859-1 characters.
--   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers.
--   The description is no longer being cropped, let the Newsletter generation crop it later on
--   The links page must be fully mobile-friendly.
-    -   The header must stack vertically on mobile to prevent overflow.
-    -   The header title and badge should wrap properly without breaking the layout.
-    -   The "Add Link" button should be hidden on mobile in favor of the floating action button.
--   The Add Link modal must be fully mobile-optimized.
-    -   The modal should take up the full height on mobile for better usability.
-    -   All buttons and inputs should have increased padding (`py-4`) for finger-friendly interaction.
-    -   There should be better spacing between form elements for a cleaner mobile experience.
-    -   The `touch-manipulation` CSS property should be added for responsive touch feedback.
-    -   The modal should close when tapping outside the content area.
--   The floating action button should be enhanced for mobile.
-    -   The size should be increased from 56px to 64px (`w-16 h-16`) for easier tapping.
-    -   The plus icon should be increased to `w-7 h-7` for better visibility.
-    -   The button should only be visible on mobile (`sm:hidden`) to avoid redundancy.
--   The table layout should be improved for mobile responsiveness.
-    -   Tables should scroll horizontally when content exceeds screen width.
-    -   Appropriate column widths should be set to prevent cramped layouts.
-    -   The scrollable area should extend edge-to-edge for a better mobile scrolling experience.
--   Safe area support should be added for devices with home indicators.
--   Category buttons should have increased padding for easier selection on mobile.
-    -   The padding should be 4 for all category buttons
--   Input fields should have larger heights for a better mobile typing experience.
-    -   The padding should be 4 for all input fields
 
 ## NAVIGATION COMPONENT
 
@@ -451,62 +399,31 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
 - Add `gap-4` to the main container and `min-w-0` to prevent overflow.
 - Settings button should remain consistently accessible.
 - Add `flex-shrink-0` to the settings button to prevent compression.
+- The "Newsletters" link in the header bar must be removed.
 
-## KIT.COM INTEGRATION
+## NEWSLETTER JSON EXPORT FORMAT
 
--   Kit.com API Error: Validation error: Email template not found
-    -   Occurs because the email template ID does not exist in the user's Kit.com account.
+-   When generating a json file for the newsletter, make sure you include the title as well.
+-   It should output the same thing that is sent to Kit.com. Kit.com is the reference.
+-   The JSON export for newsletters must now include the `title` field and match the structure sent to Kit.com, using the newsletter title as the subject.
 
-## BUILD PAGE
+## PROJECT SCOPE
 
--   The "Preview" in the Build page must render the HTML properly.
--   When clicking edit in the Build page, the AI must show the RAW HTML, to prevent breaking its formatting.
--   All links must be automatically selected by default.
--   The newsletter preview should be editable after generation and before export.
--   The order of links in the newsletter should be easily sortable, potentially via drag-and-drop functionality.
--   Drag-and-Drop Link Sorting:
-    -   Use `@dnd-kit` library for smooth drag-and-drop functionality
-    -   Create a `SortableLinkItem` component with drag handles (⋮⋮)
-    -   Links can be reordered by dragging them up or down
-    -   Visual feedback with opacity changes during dragging
--   Editable Newsletter Preview:
-    -   Add an "Edit" button next to the Newsletter Preview title
-    -   When clicked, transform the preview into an editable rich-text area using a textarea to display raw HTML.
-    -   Add a "Save Changes" button to confirm edits
-    -   All export functions (JSON, Kit.com, Copy) should use the edited content
--   The "Generate Newsletter" button should be moved below the preview section.
-    -   The button should be visible even if no links are selected, but it should be disabled in this case.
--   The preview box should be wider on desktop.
--   Step-by-Step Flow:
-    -   **REMOVED**: Step indicators from the navbar are no longer needed.
--   Improved Link Selection:
-    -   Beautiful card design with hover effects and smooth transitions
-    -   Custom selection indicators replacing checkboxes with circular indicators
-    -   Enhanced drag handles that appear on hover
-    -   Better visual hierarchy with improved spacing and typography
--   Mobile-First Experience:
-    -   Responsive layout that works perfectly on all screen sizes
-    -   Touch-friendly interactions with proper sizing
--   Advanced Features:
-    -   Collapsible AI Instructions section to keep the interface clean
-    -   Smooth animations and transitions throughout
-    -   Better visual feedback for all states (loading, generating, etc.)
-    -   Improved spacing and typography following Linear's design principles
--   Arc Browser & Motion UI Inspiration:
-    -   Clean, minimal design without overwhelming colors
-    -   Subtle interactions with smooth hover states
-    -   Thoughtful spacing and visual hierarchy
-    -   Delightful micro-animations that feel natural
-    -   Focus on workflow rather than visual noise
--   Key UX Improvements:
-    1.  Clear progression - Users always know where they are in the process
-    2.  Optional complexity - Advanced features are hidden until needed
-    3.  Mobile optimized - Works beautifully on phones with dedicated CTAs
-    4.  Visual consistency - Every element follows the same design language
-    5.  Joyful but professional - Engaging without being playful
--   The interface should feel like a premium productivity tool, similar to Linear or Arc Browser, while maintaining focus on the core workflow of building newsletters efficiently.
--   Remove the Sparkle emoji when generating a newsletter (loading)
--   After the newsletter has been generated, the generate button should say "regenerate" and should be near the preview box, not under the export box. Maybe it could even be side-by-side the edit button.
-    -   The generate button should only appear when there's no content generated yet.
-- The Preview area must be wider on desktop.
-- The HTML tiles in the preview (h1, h2) must be correctly styled.
+-   Save links: Feature to save links as you find them interesting. These will be saved in a Github Repository for you to use later
+-   Generate Newsletter: Review the links you saved and sort them to add them to your newsletter.
+-   Auto-summary: Creates a simple summary of the links you saved using AI;
+-   Kit.com integration: Automatically creates a draft of the newsletter on Kit.com
+-   Export as JSON or Clipboard
+-   Archive links after exporting a newsletter so that you can start your next newsletter fresh
+
+## FAVICON
+
+-   The favicon should be a .ico file.
+-   The favicon design should be a dark square background with a small white square centered inside, matching the app's logo.
+
+## OPEN GRAPH META TAGS
+
+-   The Open Graph meta tags should be configured as follows:
+    -   **Title:** Newsletter Builder | theboring.app
+    -   **Description:** Build beautiful, AI-powered newsletters in minutes. Save links, generate content, and export to Kit.com or JSON. Fast, minimal, and open source.
+    -   **Image:** https://theboring.app/og.png

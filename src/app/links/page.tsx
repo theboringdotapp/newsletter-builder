@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SavedLink } from "@/types";
 import {
@@ -31,7 +31,7 @@ interface ArchivedLinkGroup {
   links: SavedLink[];
 }
 
-export default function LinksPage() {
+function LinksPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [links, setLinks] = useState<SavedLink[]>([]);
@@ -1060,5 +1060,13 @@ export default function LinksPage() {
         ))}
       </div>
     </div>
+  );
+}
+
+export default function LinksPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LinksPageContent />
+    </Suspense>
   );
 }

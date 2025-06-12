@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Settings,
-  BookmarkPlus,
-  Wand2,
-  FileText,
-  AlertTriangle,
-} from "lucide-react";
+import { Settings, BookmarkPlus, Wand2, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
 
 export default function Navigation() {
