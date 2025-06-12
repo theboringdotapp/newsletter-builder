@@ -10,17 +10,16 @@ export class NewsletterGenerator {
 
   async generateNewsletter(
     links: SavedLink[],
-    thoughts: Thought[]
+    thoughts: Thought[],
+    customPrompt?: string,
+    additionalInstructions?: string
   ): Promise<string> {
-    const prompt = this.buildPrompt(links, thoughts);
+    const prompt = this.buildPrompt(links, thoughts, additionalInstructions);
 
-    try {
-      const response = await this.openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
+    // Use custom prompt if provided, otherwise use default
+    const systemPrompt =
+      customPrompt ||
+      `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
             
             Structure the newsletter exactly like this:
             1. Start with ONE sentence intro - direct and to the point
@@ -34,7 +33,15 @@ export class NewsletterGenerator {
             - Footer must be exactly 1 line asking for feedback
             - Tone: Direct, stoic, yet friendly - no fluff
             
-            Use clean HTML formatting. Be concise and valuable.`,
+            Use clean HTML formatting. Be concise and valuable.`;
+
+    try {
+      const response = await this.openai.chat.completions.create({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -55,7 +62,11 @@ export class NewsletterGenerator {
     }
   }
 
-  private buildPrompt(links: SavedLink[], thoughts: Thought[]): string {
+  private buildPrompt(
+    links: SavedLink[],
+    thoughts: Thought[],
+    additionalInstructions?: string
+  ): string {
     const currentWeek = this.getCurrentWeekString();
 
     let prompt = `Create a direct, stoic newsletter for ${currentWeek}.
@@ -137,6 +148,11 @@ Keep it direct, stoic, and valuable. No unnecessary words.
 Make titles clickable using proper HTML anchor tags.
 Don't add extra context - just present the content cleanly.`;
 
+    // Add additional instructions if provided
+    if (additionalInstructions?.trim()) {
+      prompt += `\n\nAdditional Instructions:\n${additionalInstructions.trim()}`;
+    }
+
     return prompt;
   }
 
@@ -158,4 +174,86 @@ export function extractOpenAIToken(request: Request): string {
     throw new Error("Missing or invalid authorization header");
   }
   return authHeader.substring(7);
+}
+
+// Helper functions for prompt management
+export function getCustomSummaryPrompt(): string {
+  if (typeof window === "undefined") return getDefaultSummaryPrompt();
+  return localStorage.getItem("summary_prompt") || getDefaultSummaryPrompt();
+}
+
+export function getCustomNewsletterPrompt(): string {
+  if (typeof window === "undefined") return getDefaultNewsletterPrompt();
+  return (
+    localStorage.getItem("newsletter_prompt") || getDefaultNewsletterPrompt()
+  );
+}
+
+export function getDefaultSummaryPrompt(): string {
+  return `You are creating titles and summaries for a "Coding with AI" newsletter. 
+
+TITLE REQUIREMENTS:
+- Be direct and factual (max 60 characters)
+- Don't be creative or clever, just state what it is
+- For AI models: use format like "Claude 3.5 Sonnet" or "GPT-4 Turbo"
+- For tools: use format like "GitHub Copilot" or "Cursor IDE"
+- For articles: be descriptive like "OpenAI's new reasoning model" or "How to fine-tune LLMs"
+
+SUMMARY REQUIREMENTS:
+- Relate to coding/development with AI (max 150 characters)
+- Focus on why developers would care
+- Mention specific programming use cases when possible
+- Be practical, not marketing-heavy
+
+Examples:
+- Title: "Claude 3.5 Sonnet" → Summary: "Anthropic's latest model with improved coding abilities and better reasoning for complex programming tasks"
+- Title: "GitHub Copilot Chat" → Summary: "AI pair programmer that helps write code, debug, and explain functions directly in your IDE"`;
+}
+
+export function getCustomSummaryPromptWithSystemRequirements(): string {
+  const customPart = getCustomSummaryPrompt();
+
+  // Always append the protected system requirements
+  const systemRequirements = `
+
+Respond in JSON format:
+{
+  "title": "Direct factual title",
+  "summary": "How this helps with coding/AI development"
+}`;
+
+  return customPart + systemRequirements;
+}
+
+export function getDefaultNewsletterPrompt(): string {
+  return `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
+
+Structure the newsletter exactly like this:
+1. Start with ONE sentence intro - direct and to the point
+2. Links section - each link is the title in bold (make it clickable with HTML), then the summary underneath. No extra context.
+3. End with ONE sentence asking for feedback
+
+Format requirements:
+- Keep intro to max 1 line
+- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
+- No extra commentary beyond the provided summaries
+- Footer must be exactly 1 line asking for feedback
+- Tone: Direct, stoic, yet friendly - no fluff
+
+Use clean HTML formatting. Be concise and valuable.`;
+}
+
+export function getCustomNewsletterPromptWithSystemRequirements(): string {
+  const customPart = getCustomNewsletterPrompt();
+
+  // Always append the protected system requirements that ensure proper HTML format
+  const systemRequirements = `
+
+CRITICAL SYSTEM REQUIREMENTS (DO NOT MODIFY):
+- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
+- Use clean HTML formatting with proper anchor tags
+- Make titles clickable using **<a href="URL">Title</a>** format
+- Links and content data will be provided in the user message - use exactly as given`;
+
+  return customPart + systemRequirements;
 }

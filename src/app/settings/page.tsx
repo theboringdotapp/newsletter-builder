@@ -19,9 +19,48 @@ interface SettingsState {
   openaiApiKey: string;
   kitApiKey: string;
   autoSummarize: boolean;
+  summaryPrompt: string;
+  newsletterPrompt: string;
 }
 
 export default function SettingsPage() {
+  // Default prompts
+  const defaultSummaryPrompt = `You are creating titles and summaries for a "Coding with AI" newsletter. 
+
+TITLE REQUIREMENTS:
+- Be direct and factual (max 60 characters)
+- Don't be creative or clever, just state what it is
+- For AI models: use format like "Claude 3.5 Sonnet" or "GPT-4 Turbo"
+- For tools: use format like "GitHub Copilot" or "Cursor IDE"
+- For articles: be descriptive like "OpenAI's new reasoning model" or "How to fine-tune LLMs"
+
+SUMMARY REQUIREMENTS:
+- Relate to coding/development with AI (max 150 characters)
+- Focus on why developers would care
+- Mention specific programming use cases when possible
+- Be practical, not marketing-heavy
+
+Examples:
+- Title: "Claude 3.5 Sonnet" → Summary: "Anthropic's latest model with improved coding abilities and better reasoning for complex programming tasks"
+- Title: "GitHub Copilot Chat" → Summary: "AI pair programmer that helps write code, debug, and explain functions directly in your IDE"
+`;
+
+  const defaultNewsletterPrompt = `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
+
+Structure the newsletter exactly like this:
+1. Start with ONE sentence intro - direct and to the point
+2. Links section - each link is the title in bold (make it clickable with HTML), then the summary underneath. No extra context.
+3. End with ONE sentence asking for feedback
+
+Format requirements:
+- Keep intro to max 1 line
+- For each link: **<a href="URL">Title</a>** followed by the summary on the next line
+- No extra commentary beyond the provided summaries
+- Footer must be exactly 1 line asking for feedback
+- Tone: Direct, stoic, yet friendly - no fluff
+
+Use clean HTML formatting. Be concise and valuable.`;
+
   const [settings, setSettings] = useState<SettingsState>({
     githubToken: "",
     githubOwner: "",
@@ -30,6 +69,8 @@ export default function SettingsPage() {
     openaiApiKey: "",
     kitApiKey: "",
     autoSummarize: false,
+    summaryPrompt: defaultSummaryPrompt,
+    newsletterPrompt: defaultNewsletterPrompt,
   });
   const [lastSaved, setLastSaved] = useState<string>("");
   const [showSaved, setShowSaved] = useState(false);
@@ -44,9 +85,13 @@ export default function SettingsPage() {
       openaiApiKey: localStorage.getItem("openai_api_key") || "",
       kitApiKey: localStorage.getItem("kit_api_key") || "",
       autoSummarize: localStorage.getItem("auto_summarize") === "true",
+      summaryPrompt:
+        localStorage.getItem("summary_prompt") || defaultSummaryPrompt,
+      newsletterPrompt:
+        localStorage.getItem("newsletter_prompt") || defaultNewsletterPrompt,
     };
     setSettings(savedSettings);
-  }, []);
+  }, [defaultSummaryPrompt, defaultNewsletterPrompt]);
 
   const updateSetting = (key: keyof SettingsState, value: string | boolean) => {
     const newSettings = { ...settings, [key]: value };
@@ -66,6 +111,10 @@ export default function SettingsPage() {
         ? "openai_api_key"
         : key === "autoSummarize"
         ? "auto_summarize"
+        : key === "summaryPrompt"
+        ? "summary_prompt"
+        : key === "newsletterPrompt"
+        ? "newsletter_prompt"
         : "kit_api_key";
 
     localStorage.setItem(storageKey, String(value));
@@ -176,6 +225,38 @@ export default function SettingsPage() {
           />
         </button>
       </div>
+      {helperText && (
+        <p className="text-caption text-neutral-500">{helperText}</p>
+      )}
+    </div>
+  );
+
+  const TextAreaField = ({
+    label,
+    value,
+    onChange,
+    placeholder,
+    rows = 8,
+    helperText,
+  }: {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    placeholder: string;
+    rows?: number;
+    helperText?: string;
+  }) => (
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-neutral-700">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="input resize-none"
+        rows={rows}
+        placeholder={placeholder}
+      />
       {helperText && (
         <p className="text-caption text-neutral-500">{helperText}</p>
       )}
@@ -297,12 +378,50 @@ export default function SettingsPage() {
               />
 
               {settings.openaiApiKey && (
-                <ToggleField
-                  label="Auto-summarization"
-                  value={settings.autoSummarize}
-                  onChange={(value) => updateSetting("autoSummarize", value)}
-                  helperText="Automatically generate titles and descriptions when adding links (disabled by default)"
-                />
+                <>
+                  <ToggleField
+                    label="Auto-summarization"
+                    value={settings.autoSummarize}
+                    onChange={(value) => updateSetting("autoSummarize", value)}
+                    helperText="Automatically generate titles and descriptions when adding links (disabled by default)"
+                  />
+
+                  <div className="space-y-6 pt-4 border-t border-neutral-200">
+                    <div>
+                      <h4 className="text-sm font-medium text-neutral-700 mb-4">
+                        AI Prompt Customization
+                      </h4>
+                      <p className="text-caption text-neutral-500 mb-6">
+                        Customize how AI generates summaries and newsletters.
+                        Critical system requirements (JSON format, HTML
+                        structure) are automatically protected to prevent
+                        breaking the system.
+                      </p>
+                    </div>
+
+                    <TextAreaField
+                      label="Link Summarization Prompt"
+                      value={settings.summaryPrompt}
+                      onChange={(value) =>
+                        updateSetting("summaryPrompt", value)
+                      }
+                      placeholder="Enter your custom prompt for link summarization..."
+                      rows={10}
+                      helperText="This prompt is used when AI generates titles and summaries for your saved links. Note: The JSON response format is automatically protected."
+                    />
+
+                    <TextAreaField
+                      label="Newsletter Generation Prompt"
+                      value={settings.newsletterPrompt}
+                      onChange={(value) =>
+                        updateSetting("newsletterPrompt", value)
+                      }
+                      placeholder="Enter your custom prompt for newsletter generation..."
+                      rows={8}
+                      helperText="This prompt sets the tone and style for your newsletter content. Note: HTML link formatting requirements are automatically protected."
+                    />
+                  </div>
+                </>
               )}
             </div>
           </SettingsSection>

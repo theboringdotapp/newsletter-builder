@@ -236,3 +236,30 @@ your-newsletter-data-repo/
     -   Use `react-contenteditable` for in-place editing
     -   Add a "Save Changes" button to confirm edits
     -   All export functions (JSON, Kit.com, Copy) should use the edited content
+
+## PROJECT SCOPE
+
+-   Save links: Feature to save links as you find them interesting. These will be saved in a Github Repository for you to use later
+-   Generate Newsletter: Review the links you saved and sort them to add them to your newsletter.
+-   Auto-summary: Creates a simple summary of the links you saved using AI;
+-   Kit.com integration: Automatically creates a draft of the newsletter on Kit.com
+-   Export as JSON or Clipboard
+-   Archive links after exporting a newsletter so that you can start your next newsletter fresh
+
+## OPENAI PROMPT CUSTOMIZATION
+
+-   Users can customize the prompts used for summarizing links and generating newsletters.
+-   Both prompts are editable on the Settings page, within the OpenAI section.
+-   Users can add an additional improvement to the newsletter generation prompt directly on the Generate Newsletter page.
+    -   This allows for specific adjustments to the newsletter's content or organization.
+    -   The user can specify the order or organization of links within this additional prompt.
+-   The core structure of the newsletter generation prompt, including the section for adding links, remains hidden from the user to prevent accidental disruption of the AI's functionality.
+-   The link summarization prompt is customizable, but the final prompt must always adhere to the system's required JSON format.
+    -   Even if the user requests a different format, the final prompt must follow the system format:
+
+```json
+{
+  "title": "Direct factual title",
+  "summary": "How this helps with coding/AI development"
+}
+```

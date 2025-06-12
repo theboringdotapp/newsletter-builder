@@ -145,6 +145,7 @@ export default function BuilderPage() {
   // New states for editable preview
   const [isEditingPreview, setIsEditingPreview] = useState(false);
   const [editableContent, setEditableContent] = useState("");
+  const [additionalInstructions, setAdditionalInstructions] = useState("");
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -313,6 +314,7 @@ export default function BuilderPage() {
         body: JSON.stringify({
           links: selectedLinks,
           thoughts: parsedThoughts,
+          additionalInstructions: additionalInstructions.trim() || undefined,
         }),
       });
 
@@ -739,6 +741,35 @@ Spent way too much time this week trying to perfect a prompt when I should have 
 
                 <p className="text-caption text-neutral-500 mt-2">
                   {parseThoughts().length} thoughts will be included
+                </p>
+              </div>
+
+              {/* Additional Instructions for AI */}
+              <div className="card card-padding">
+                <div className="flex items-center gap-2 mb-4">
+                  <Wand2 className="w-5 h-5 text-neutral-600" />
+                  <h3 className="text-heading text-neutral-900">
+                    AI Instructions (Optional)
+                  </h3>
+                </div>
+
+                <p className="text-body mb-4">
+                  Give specific instructions for this newsletter. For example,
+                  organize links by importance, focus on certain themes, or use
+                  a specific tone.
+                </p>
+
+                <textarea
+                  value={additionalInstructions}
+                  onChange={(e) => setAdditionalInstructions(e.target.value)}
+                  className="input resize-none"
+                  rows={3}
+                  placeholder="e.g., 'Put tools first, then models, organize by relevance to mobile development' or 'Use a more casual tone this week' or 'Focus on the practical benefits for startups'"
+                />
+
+                <p className="text-caption text-neutral-500 mt-2">
+                  💡 These instructions will guide the AI for this specific
+                  newsletter
                 </p>
               </div>
             </div>

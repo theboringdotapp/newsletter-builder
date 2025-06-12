@@ -53,36 +53,26 @@ export async function POST(request: Request) {
       pageContent = `URL: ${url}`;
     }
 
+    // Get custom summary prompt from client or use default
+    const customPrompt = await request.headers.get("X-Custom-Prompt");
+
+    // Import the function at the top if it wasn't already imported
+    const { getCustomSummaryPrompt } = await import("@/lib/openai");
+
+    // Always ensure JSON format requirements are protected
+    const summaryPrompt = customPrompt
+      ? customPrompt +
+        `\n\nRespond in JSON format:\n{\n  "title": "Direct factual title",\n  "summary": "How this helps with coding/AI development"\n}`
+      : getCustomSummaryPrompt() +
+        `\n\nRespond in JSON format:\n{\n  "title": "Direct factual title",\n  "summary": "How this helps with coding/AI development"\n}`;
+
     // Generate title and summary using OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are creating titles and summaries for a "Coding with AI" newsletter. 
-
-          TITLE REQUIREMENTS:
-          - Be direct and factual (max 60 characters)
-          - Don't be creative or clever, just state what it is
-          - For AI models: use format like "Claude 3.5 Sonnet" or "GPT-4 Turbo"
-          - For tools: use format like "GitHub Copilot" or "Cursor IDE"
-          - For articles: be descriptive like "OpenAI's new reasoning model" or "How to fine-tune LLMs"
-          
-          SUMMARY REQUIREMENTS:
-          - Relate to coding/development with AI (max 150 characters)
-          - Focus on why developers would care
-          - Mention specific programming use cases when possible
-          - Be practical, not marketing-heavy
-          
-          Examples:
-          - Title: "Claude 3.5 Sonnet" → Summary: "Anthropic's latest model with improved coding abilities and better reasoning for complex programming tasks"
-          - Title: "GitHub Copilot Chat" → Summary: "AI pair programmer that helps write code, debug, and explain functions directly in your IDE"
-          
-          Respond in JSON format:
-          {
-            "title": "Direct factual title",
-            "summary": "How this helps with coding/AI development"
-          }`,
+          content: summaryPrompt,
         },
         {
           role: "user",
@@ -124,7 +114,6 @@ Focus on the programming/development angle and why developers building with AI w
       );
 
       // Try to extract structured data from the response
-      const lines = result.split("\n").filter((line) => line.trim());
       let title = "AI Tool or Resource";
       let summary = "AI-related content for developers";
 
