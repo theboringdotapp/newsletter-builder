@@ -364,7 +364,7 @@ export default function SettingsPage() {
           {/* GitHub Configuration */}
           <SettingsSection
             title="GitHub Repository"
-            description="Where your links and newsletters will be stored"
+            description="Where your links will be stored"
             icon={Github}
             isRequired
           >

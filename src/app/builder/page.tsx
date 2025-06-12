@@ -16,7 +16,6 @@ import {
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  ArrowRight,
   Sparkles,
 } from "lucide-react";
 import Toast from "@/components/Toast";
@@ -379,11 +378,12 @@ export default function BuilderPage() {
     if (!contentToExport) return;
 
     const currentWeek = getCurrentWeekString();
-    const subject = generateSubject();
+    const subject = newsletterTitle || generateSubject();
     const previewText = generatePreviewText();
 
     const content = JSON.stringify(
       {
+        title: subject,
         subject,
         preview_text: previewText,
         content: contentToExport,
@@ -1064,13 +1064,6 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                   <span className="text-emerald-800 font-medium">
                     Newsletter ready!
                   </span>
-                  <Link
-                    href="/newsletters"
-                    className="text-emerald-700 hover:text-emerald-800 font-medium flex items-center gap-1"
-                  >
-                    View all newsletters
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
                 </div>
               </div>
             )}

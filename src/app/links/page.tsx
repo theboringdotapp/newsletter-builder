@@ -750,8 +750,8 @@ export default function LinksPage() {
                         No archived links yet
                       </h3>
                       <p className="text-body max-w-md mx-auto leading-relaxed">
-                        When you export newsletters and archive used links,
-                        they&apos;ll appear here for reference.
+                        When you archive used links, they&apos;ll appear here
+                        for reference.
                       </p>
                     </div>
                   ) : (

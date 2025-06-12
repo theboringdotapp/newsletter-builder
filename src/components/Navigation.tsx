@@ -31,7 +31,6 @@ export default function Navigation() {
   const navItems = [
     { href: "/links", label: "Links", icon: BookmarkPlus },
     { href: "/builder", label: "Create", icon: Wand2 },
-    { href: "/newsletters", label: "Newsletters", icon: FileText },
   ];
 
   return (

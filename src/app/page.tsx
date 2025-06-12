@@ -205,12 +205,6 @@ export default function HomePage() {
             >
               <div className="inline-flex items-center gap-3 px-4 sm:px-6 py-3 rounded-xl bg-neutral-100 hover:bg-neutral-200 transition-all duration-300 hover:scale-105">
                 <FileText className="w-4 h-4 text-neutral-600" />
-                <Link
-                  href="/newsletters"
-                  className="text-sm text-neutral-700 hover:text-neutral-900 transition-colors"
-                >
-                  Browse past newsletters
-                </Link>
               </div>
             </div>
           )}
