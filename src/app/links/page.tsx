@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SavedLink } from "@/types";
 import {
   Plus,
@@ -31,6 +32,8 @@ interface ArchivedLinkGroup {
 }
 
 export default function LinksPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [links, setLinks] = useState<SavedLink[]>([]);
   const [archivedLinks, setArchivedLinks] = useState<ArchivedLinkGroup[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +45,7 @@ export default function LinksPage() {
   const [githubRepo, setGithubRepo] = useState("");
   const [githubBranch, setGithubBranch] = useState("main");
   const [openaiApiKey, setOpenaiApiKey] = useState("");
+  const [autoSummarizeEnabled, setAutoSummarizeEnabled] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -52,6 +56,7 @@ export default function LinksPage() {
     description: "",
     category: "tool" as SavedLink["category"],
   });
+  const [shouldAutoSummarize, setShouldAutoSummarize] = useState(false);
 
   useEffect(() => {
     // Load configuration from localStorage
@@ -60,12 +65,14 @@ export default function LinksPage() {
     const repo = localStorage.getItem("github_repo") || "";
     const branch = localStorage.getItem("github_branch") || "main";
     const openaiKey = localStorage.getItem("openai_api_key") || "";
+    const autoSummarize = localStorage.getItem("auto_summarize") === "true";
 
     setGithubToken(token);
     setGithubOwner(owner);
     setGithubRepo(repo);
     setGithubBranch(branch);
     setOpenaiApiKey(openaiKey);
+    setAutoSummarizeEnabled(autoSummarize);
 
     if (token && owner && repo) {
       loadLinks(token, owner, repo, branch);
@@ -73,9 +80,17 @@ export default function LinksPage() {
       setIsLoading(false);
     }
 
+    // Check if modal should be open based on URL parameter
+    const addParam = searchParams.get("add");
+    if (addParam === "true") {
+      setShowAddForm(true);
+    } else {
+      setShowAddForm(false);
+    }
+
     // Trigger entrance animation
     setTimeout(() => setIsLoaded(true), 100);
-  }, []);
+  }, [searchParams]);
 
   const addToast = (message: string, type: "success" | "error") => {
     const id = Date.now();
@@ -84,6 +99,24 @@ export default function LinksPage() {
 
   const removeToast = (id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // URL-based modal management
+  const openAddForm = () => {
+    setShowAddForm(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("add", "true");
+    router.push(`/links?${params.toString()}`);
+  };
+
+  const closeAddForm = () => {
+    setShowAddForm(false);
+    setNewLink({ url: "", title: "", description: "", category: "tool" });
+    setShouldAutoSummarize(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("add");
+    const newUrl = params.toString() ? `/links?${params.toString()}` : "/links";
+    router.push(newUrl);
   };
 
   const loadLinks = async (
@@ -161,6 +194,52 @@ export default function LinksPage() {
     setActiveTab("archived");
   };
 
+  // Auto-detect category based on URL
+  const detectCategory = (url: string): SavedLink["category"] => {
+    const urlLower = url.toLowerCase();
+    if (
+      urlLower.includes("github.com") ||
+      urlLower.includes("huggingface.co")
+    ) {
+      return "model";
+    }
+    if (
+      urlLower.includes("blog") ||
+      urlLower.includes("article") ||
+      urlLower.includes("medium.com")
+    ) {
+      return "article";
+    }
+    if (
+      urlLower.includes("tool") ||
+      urlLower.includes("app") ||
+      urlLower.includes(".ai") ||
+      urlLower.includes("openai.com")
+    ) {
+      return "tool";
+    }
+    return "tool"; // default
+  };
+
+  const handleUrlChange = (url: string) => {
+    setNewLink((prev) => ({
+      ...prev,
+      url,
+      category: url ? detectCategory(url) : prev.category,
+    }));
+
+    // Auto-trigger summarization if URL is valid, AI key exists, and auto-summarization is enabled
+    if (
+      url &&
+      openaiApiKey &&
+      autoSummarizeEnabled &&
+      !newLink.title &&
+      !newLink.description
+    ) {
+      setShouldAutoSummarize(true);
+    }
+  };
+
   const summarizeLink = async () => {
     if (!newLink.url || !openaiApiKey) {
       addToast(
@@ -200,8 +279,31 @@ export default function LinksPage() {
       addToast("Network error summarizing link", "error");
     } finally {
       setIsGeneratingSummary(false);
+      setShouldAutoSummarize(false);
     }
   };
+
+  // Auto-trigger summarization when conditions are met
+  useEffect(() => {
+    if (
+      shouldAutoSummarize &&
+      newLink.url &&
+      openaiApiKey &&
+      autoSummarizeEnabled &&
+      !isGeneratingSummary
+    ) {
+      const timer = setTimeout(() => {
+        summarizeLink();
+      }, 1000); // Wait 1 second after URL is entered
+      return () => clearTimeout(timer);
+    }
+  }, [
+    shouldAutoSummarize,
+    newLink.url,
+    openaiApiKey,
+    autoSummarizeEnabled,
+    isGeneratingSummary,
+  ]);
 
   const saveLink = async () => {
     if (!newLink.url || !githubToken || !githubOwner || !githubRepo) return;
@@ -232,8 +334,7 @@ export default function LinksPage() {
 
       if (response.ok) {
         setLinks([...links, link]);
-        setNewLink({ url: "", title: "", description: "", category: "tool" });
-        setShowAddForm(false);
+        closeAddForm();
         addToast("Link saved successfully! ✨", "success");
       } else {
         const error = await response.json();
@@ -341,8 +442,8 @@ export default function LinksPage() {
 
           {isConfigured && (
             <button
-              onClick={() => setShowAddForm(true)}
-              className="btn btn-primary group hover:scale-105 transition-all duration-200"
+              onClick={openAddForm}
+              className="btn btn-primary group hover:scale-105 transition-all duration-200 cursor-pointer"
             >
               <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
               Add Link
@@ -492,7 +593,7 @@ export default function LinksPage() {
                         week.
                       </p>
                       <button
-                        onClick={() => setShowAddForm(true)}
+                        onClick={openAddForm}
                         className="btn btn-primary btn-lg group hover:scale-105 transition-all duration-200 cursor-pointer"
                       >
                         <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
@@ -736,121 +837,179 @@ export default function LinksPage() {
           </div>
         )}
 
-        {/* Add Link Modal */}
+        {/* Add Link Modal - Mobile-Optimized */}
         {showAddForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6">
-                <h2 className="text-title text-neutral-900 mb-6">
-                  Add New Link
+          <div
+            className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                closeAddForm();
+              }
+            }}
+          >
+            {/* Mobile: Bottom sheet, Desktop: Centered modal */}
+            <div className="bg-white w-full sm:max-w-lg sm:w-full sm:rounded-xl shadow-lg max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200 bg-white sticky top-0">
+                <h2 className="text-lg sm:text-title font-semibold text-neutral-900">
+                  Add Link
                 </h2>
+                <button
+                  onClick={closeAddForm}
+                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
+                  aria-label="Close"
+                >
+                  <ArrowLeft className="w-5 h-5 text-neutral-600" />
+                </button>
+              </div>
 
-                <div className="space-y-4">
+              {/* Content */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-4 sm:p-6 space-y-6">
+                  {/* URL Input - Primary focus */}
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      URL *
+                    <label className="block text-sm font-medium text-neutral-700 mb-3">
+                      Paste your link here
                     </label>
                     <input
                       type="url"
                       value={newLink.url}
-                      onChange={(e) =>
-                        setNewLink({ ...newLink, url: e.target.value })
-                      }
-                      className="input"
-                      placeholder="https://example.com"
+                      onChange={(e) => handleUrlChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newLink.url && !isSaving) {
+                          e.preventDefault();
+                          saveLink();
+                        }
+                      }}
+                      className="w-full px-4 py-4 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-none"
+                      placeholder="https://..."
+                      autoFocus
                       required
                     />
                   </div>
 
+                  {/* Quick Category Selection */}
                   <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Category
+                    <label className="block text-sm font-medium text-neutral-700 mb-3">
+                      What type of link is this?
                     </label>
-                    <select
-                      value={newLink.category}
-                      onChange={(e) =>
-                        setNewLink({
-                          ...newLink,
-                          category: e.target.value as SavedLink["category"],
-                        })
-                      }
-                      className="input"
-                    >
-                      <option value="tool">AI Tool</option>
-                      <option value="model">AI Model</option>
-                      <option value="article">Article</option>
-                      <option value="other">Other</option>
-                    </select>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: "tool", label: "🛠️ AI Tool", icon: Zap },
+                        {
+                          value: "model",
+                          label: "🤖 AI Model",
+                          icon: Sparkles,
+                        },
+                        {
+                          value: "article",
+                          label: "📚 Article",
+                          icon: LinkIcon,
+                        },
+                        { value: "other", label: "💡 Other", icon: Plus },
+                      ].map((category) => (
+                        <button
+                          key={category.value}
+                          type="button"
+                          onClick={() =>
+                            setNewLink({
+                              ...newLink,
+                              category: category.value as SavedLink["category"],
+                            })
+                          }
+                          className={`p-3 rounded-lg border-2 transition-all text-left cursor-pointer ${
+                            newLink.category === category.value
+                              ? "border-neutral-900 bg-neutral-50 text-neutral-900"
+                              : "border-neutral-200 text-neutral-600 hover:border-neutral-300"
+                          }`}
+                        >
+                          <div className="text-sm font-medium">
+                            {category.label}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Title
-                    </label>
-                    <input
-                      type="text"
-                      value={newLink.title}
-                      onChange={(e) =>
-                        setNewLink({ ...newLink, title: e.target.value })
-                      }
-                      className="input"
-                      placeholder="Enter title or use AI summarization"
-                    />
-                  </div>
+                  {/* Optional Fields - Collapsible on mobile */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Title (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newLink.title}
+                        onChange={(e) =>
+                          setNewLink({ ...newLink, title: e.target.value })
+                        }
+                        className="w-full px-4 py-3 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
+                        placeholder="AI will suggest a title"
+                      />
+                    </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-neutral-700 mb-2">
-                      Description
-                    </label>
-                    <textarea
-                      value={newLink.description}
-                      onChange={(e) =>
-                        setNewLink({ ...newLink, description: e.target.value })
-                      }
-                      className="input resize-none"
-                      rows={3}
-                      placeholder="Enter description or use AI summarization"
-                    />
+                    <div>
+                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                        Description (optional)
+                      </label>
+                      <textarea
+                        value={newLink.description}
+                        onChange={(e) =>
+                          setNewLink({
+                            ...newLink,
+                            description: e.target.value,
+                          })
+                        }
+                        className="w-full px-4 py-3 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-none"
+                        rows={3}
+                        placeholder="AI will create a summary"
+                      />
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between pt-6 mt-6 border-t border-neutral-200">
-                  <div className="flex gap-2">
+              {/* Actions - Sticky bottom */}
+              <div className="p-4 sm:p-6 border-t border-neutral-200 bg-white sticky bottom-0">
+                <div className="space-y-3">
+                  {/* AI Summarize button - Full width on mobile */}
+                  {openaiApiKey && newLink.url && (
                     <button
-                      onClick={() => setShowAddForm(false)}
-                      className="btn btn-ghost cursor-pointer"
+                      onClick={summarizeLink}
+                      disabled={isGeneratingSummary}
+                      className="w-full py-3 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
                     >
-                      Cancel
+                      {isGeneratingSummary ? (
+                        <>
+                          <div className="animate-spin w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full inline mr-2" />
+                          Getting title & summary...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4 inline mr-2" />✨
+                          Auto-fill with AI
+                        </>
+                      )}
                     </button>
-                    {openaiApiKey && (
-                      <button
-                        onClick={summarizeLink}
-                        disabled={isGeneratingSummary || !newLink.url}
-                        className="btn btn-secondary cursor-pointer"
-                      >
-                        {isGeneratingSummary ? (
-                          <div className="animate-spin w-4 h-4 border-2 border-neutral-300 border-t-neutral-600 rounded-full" />
-                        ) : (
-                          <Sparkles className="w-4 h-4" />
-                        )}
-                        {isGeneratingSummary
-                          ? "Summarizing..."
-                          : "AI Summarize"}
-                      </button>
-                    )}
-                  </div>
+                  )}
 
+                  {/* Primary action */}
                   <button
                     onClick={saveLink}
                     disabled={isSaving || !newLink.url}
-                    className="btn btn-primary cursor-pointer"
+                    className="w-full py-4 px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors text-base font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isSaving ? (
-                      <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                      <>
+                        <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full inline mr-2" />
+                        Saving...
+                      </>
                     ) : (
-                      <BookmarkPlus className="w-4 h-4" />
+                      <>
+                        <BookmarkPlus className="w-5 h-5 inline mr-2" />
+                        Save Link
+                      </>
                     )}
-                    {isSaving ? "Saving..." : "Save Link"}
                   </button>
                 </div>
               </div>
@@ -858,6 +1017,17 @@ export default function LinksPage() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Button - Mobile Only */}
+      {isConfigured && (
+        <button
+          onClick={openAddForm}
+          className="fixed bottom-6 right-6 md:hidden w-14 h-14 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40 cursor-pointer"
+          aria-label="Add new link"
+        >
+          <Plus className="w-6 h-6" />
+        </button>
+      )}
 
       {/* Toast Notifications */}
       <div className="fixed bottom-4 right-4 space-y-2 z-50">

@@ -16,6 +16,8 @@ globs: *
     -   Titles should be short and concise, focusing on directly stating what the model is.
     -   Summaries should relate the news to the context of the newsletter "Coding with AI".
 -   All API Key setup must be on a dedicated settings page, accessible via a toggle in the header. If a feature requires a key that is not set, show a warning on the page with a button to open the settings.
+-   The "add links" feature must be super easy to use on mobile. The goal is to make submitting a link from a phone as quick as possible, ideally as simple as sending a WhatsApp message.
+-   The "Add Links" modal should be accessible via URL, so that it can be opened easily on mobile.
 
 ### CONFLICT RESOLUTION
 
@@ -33,6 +35,10 @@ globs: *
 -   axios
 -   date-fns
 -   lucide-react
+-   @dnd-kit/core
+-   @dnd-kit/sortable
+-   @dnd-kit/utilities
+-   react-contenteditable
 
 ## PROJECT DOCUMENTATION & CONTEXT SYSTEM
 
@@ -185,11 +191,48 @@ your-newsletter-data-repo/
 -   The card-based navigation on the homepage should feel native to product tools.
 -   The homepage should implement progressive enhancement for different user states.
 -   Ensure every page is mobile-friendly.
+-   The "add links" feature must be super easy to use on mobile, with a simplified flow, auto-focus, and a mobile-first design.
+    -   On mobile, the modal should slide up from the bottom like WhatsApp.
+    -   The modal should take up the full screen on mobile for maximum usability.
+    -   All buttons and inputs should be sized for fingers, not cursors.
+    -   The URL input should get focus immediately when opened.
+    -   The experience should be as simple as: Tap floating + button (or header button), Paste URL (auto-detects category), Tap category if needed (visual selection), Hit Enter or tap Save.
 
 ## LINKS PAGE
 
--   Links on the links page (`@page.tsx`) must be displayed in a table format instead of cards. Retain the same data.
+-   Links on the links page (`@page.tsx`) must be displayed in a table format with tabs for "Active Links" and "Archived Links".
 -   The "Archived Links" button should be a tab on the table.
 -   The "Create Newsletter" CTA must be removed from the bottom of the links page.
 -   A lazy-loaded view for archived links must be implemented.
     -   Archived links are retrieved from the `links/archive/` directory structure.
+-   Ensure `cursor-pointer` is applied to all clickable elements: tab buttons, link URLs (both active and archived), action buttons (open link, delete link), modal buttons (Cancel, AI Summarize, Save Link), and the "Add Your First Link" button.
+-   Auto-summarization:
+    -   Auto-summarization is optional and disabled by default.
+    -   The "Auto-summarization" toggle is displayed in the OpenAI API section of the settings page.
+    -   The toggle is only shown when an OpenAI API key is configured.
+    -   The default state is disabled (false).
+    -   The setting is saved as `auto_summarize` in localStorage.
+    -   The links page loads the auto-summarization preference on page load.
+    -   Auto-summarization is only triggered when:
+        -   URL is pasted
+        -   OpenAI API key exists
+        -   Auto-summarization is enabled in settings
+        -   Title and description are empty
+        -   1 second delay has passed
+    -   The "✨ Auto-fill with AI" button is always available regardless of the setting.
+
+## BUILD PAGE
+
+-   The newsletter preview should be editable after generation and before export.
+-   The order of links in the newsletter should be easily sortable, potentially via drag-and-drop functionality.
+-   Drag-and-Drop Link Sorting:
+    -   Use `@dnd-kit` library for smooth drag-and-drop functionality
+    -   Create a `SortableLinkItem` component with drag handles (⋮⋮)
+    -   Links can be reordered by dragging them up or down
+    -   Visual feedback with opacity changes during dragging
+-   Editable Newsletter Preview:
+    -   Add an "Edit" button next to the Newsletter Preview title
+    -   When clicked, transform the preview into an editable rich-text area
+    -   Use `react-contenteditable` for in-place editing
+    -   Add a "Save Changes" button to confirm edits
+    -   All export functions (JSON, Kit.com, Copy) should use the edited content

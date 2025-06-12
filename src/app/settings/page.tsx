@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   ArrowLeft,
   Check,
-  Key,
   Github,
   Brain,
   Mail,
@@ -19,6 +18,7 @@ interface SettingsState {
   githubBranch: string;
   openaiApiKey: string;
   kitApiKey: string;
+  autoSummarize: boolean;
 }
 
 export default function SettingsPage() {
@@ -29,6 +29,7 @@ export default function SettingsPage() {
     githubBranch: "main",
     openaiApiKey: "",
     kitApiKey: "",
+    autoSummarize: false,
   });
   const [lastSaved, setLastSaved] = useState<string>("");
   const [showSaved, setShowSaved] = useState(false);
@@ -42,16 +43,17 @@ export default function SettingsPage() {
       githubBranch: localStorage.getItem("github_branch") || "main",
       openaiApiKey: localStorage.getItem("openai_api_key") || "",
       kitApiKey: localStorage.getItem("kit_api_key") || "",
+      autoSummarize: localStorage.getItem("auto_summarize") === "true",
     };
     setSettings(savedSettings);
   }, []);
 
-  const updateSetting = (key: keyof SettingsState, value: string) => {
+  const updateSetting = (key: keyof SettingsState, value: string | boolean) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
 
     // Auto-save to localStorage
-    localStorage.setItem(
+    const storageKey =
       key === "githubToken"
         ? "github_token"
         : key === "githubOwner"
@@ -62,9 +64,11 @@ export default function SettingsPage() {
         ? "github_branch"
         : key === "openaiApiKey"
         ? "openai_api_key"
-        : "kit_api_key",
-      value
-    );
+        : key === "autoSummarize"
+        ? "auto_summarize"
+        : "kit_api_key";
+
+    localStorage.setItem(storageKey, String(value));
 
     // Show saved notification
     const now = new Date().toLocaleTimeString();
@@ -82,7 +86,7 @@ export default function SettingsPage() {
   }: {
     title: string;
     description: string;
-    icon: any;
+    icon: React.ComponentType<{ className?: string }>;
     children: React.ReactNode;
     isRequired?: boolean;
   }) => (
@@ -95,7 +99,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2 mb-1">
             <h3 className="text-heading text-neutral-900">{title}</h3>
             {isRequired && (
-              <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
                 Required
               </span>
             )}
@@ -136,6 +140,42 @@ export default function SettingsPage() {
         className="input"
         placeholder={placeholder}
       />
+      {helperText && (
+        <p className="text-caption text-neutral-500">{helperText}</p>
+      )}
+    </div>
+  );
+
+  const ToggleField = ({
+    label,
+    value,
+    onChange,
+    helperText,
+  }: {
+    label: string;
+    value: boolean;
+    onChange: (value: boolean) => void;
+    helperText?: string;
+  }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-sm font-medium text-neutral-700">
+          {label}
+        </label>
+        <button
+          type="button"
+          onClick={() => onChange(!value)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+            value ? "bg-neutral-900" : "bg-neutral-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              value ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
       {helperText && (
         <p className="text-caption text-neutral-500">{helperText}</p>
       )}
@@ -245,15 +285,26 @@ export default function SettingsPage() {
             icon={Brain}
             isRequired
           >
-            <InputField
-              label="API Key"
-              value={settings.openaiApiKey}
-              onChange={(value) => updateSetting("openaiApiKey", value)}
-              placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
-              type="password"
-              required
-              helperText="Get your API key from platform.openai.com/api-keys"
-            />
+            <div className="space-y-6">
+              <InputField
+                label="API Key"
+                value={settings.openaiApiKey}
+                onChange={(value) => updateSetting("openaiApiKey", value)}
+                placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
+                type="password"
+                required
+                helperText="Get your API key from platform.openai.com/api-keys"
+              />
+
+              {settings.openaiApiKey && (
+                <ToggleField
+                  label="Auto-summarization"
+                  value={settings.autoSummarize}
+                  onChange={(value) => updateSetting("autoSummarize", value)}
+                  helperText="Automatically generate titles and descriptions when adding links (disabled by default)"
+                />
+              )}
+            </div>
           </SettingsSection>
 
           {/* Kit.com Configuration */}

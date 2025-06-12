@@ -14,14 +14,114 @@ import {
   Download,
   Send,
   Copy,
+  GripVertical,
+  Edit3,
 } from "lucide-react";
 import Toast from "@/components/Toast";
 import Link from "next/link";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import ContentEditable from "react-contenteditable";
 
 interface ToastMessage {
   id: number;
   message: string;
   type: "success" | "error";
+}
+
+// Sortable Link Item Component
+function SortableLinkItem({
+  link,
+  isSelected,
+  onToggle,
+}: {
+  link: SavedLink;
+  isSelected: boolean;
+  onToggle: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: link.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`p-3 border rounded-lg transition-all ${
+        isSelected
+          ? "border-primary-500 bg-primary-50"
+          : "border-neutral-300 hover:border-neutral-400"
+      } ${isDragging ? "shadow-lg" : ""}`}
+    >
+      <div className="flex items-start gap-3">
+        {/* Drag Handle */}
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 mt-1"
+        >
+          <GripVertical className="w-4 h-4" />
+        </div>
+
+        {/* Link Content */}
+        <div className="flex-1 cursor-pointer" onClick={onToggle}>
+          <div className="flex items-center gap-2 mb-1">
+            <span
+              className={`px-2 py-1 text-xs rounded-full font-medium ${
+                link.category === "tool"
+                  ? "bg-blue-100 text-blue-800"
+                  : link.category === "model"
+                  ? "bg-green-100 text-green-800"
+                  : link.category === "article"
+                  ? "bg-purple-100 text-purple-800"
+                  : "bg-neutral-100 text-neutral-800"
+              }`}
+            >
+              {link.category}
+            </span>
+          </div>
+          <h4 className="font-medium text-sm text-neutral-900 mb-1">
+            {link.title || "Untitled"}
+          </h4>
+          <p className="text-xs text-neutral-600 truncate">{link.url}</p>
+        </div>
+
+        {/* Checkbox */}
+        <input
+          type="checkbox"
+          checked={isSelected}
+          onChange={onToggle}
+          className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
+        />
+      </div>
+    </div>
+  );
 }
 
 export default function BuilderPage() {
@@ -41,6 +141,18 @@ export default function BuilderPage() {
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [showArchiveModal, setShowArchiveModal] = useState(false);
   const [isArchiving, setIsArchiving] = useState(false);
+
+  // New states for editable preview
+  const [isEditingPreview, setIsEditingPreview] = useState(false);
+  const [editableContent, setEditableContent] = useState("");
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     // Load configuration from localStorage
@@ -64,6 +176,13 @@ export default function BuilderPage() {
       setIsLoading(false);
     }
   }, []);
+
+  // Update editable content when generated content changes
+  useEffect(() => {
+    if (generatedContent && !isEditingPreview) {
+      setEditableContent(generatedContent);
+    }
+  }, [generatedContent, isEditingPreview]);
 
   const addToast = (message: string, type: "success" | "error") => {
     const id = Date.now();
@@ -118,6 +237,34 @@ export default function BuilderPage() {
         link.id === linkId ? { ...link, selected: !link.selected } : link
       )
     );
+  };
+
+  // Handle drag end for reordering links
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setLinks((links) => {
+        const oldIndex = links.findIndex((link) => link.id === active.id);
+        const newIndex = links.findIndex((link) => link.id === over?.id);
+
+        return arrayMove(links, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Handle preview editing
+  const togglePreviewEdit = () => {
+    if (isEditingPreview) {
+      // Save the edited content back to generated content
+      setGeneratedContent(editableContent);
+      addToast("Newsletter content updated! ✨", "success");
+    }
+    setIsEditingPreview(!isEditingPreview);
+  };
+
+  const handleContentChange = (evt: React.FormEvent<HTMLDivElement>) => {
+    setEditableContent(evt.currentTarget.innerHTML);
   };
 
   const parseThoughts = (): Thought[] => {
@@ -186,8 +333,8 @@ export default function BuilderPage() {
   };
 
   const saveNewsletter = async () => {
-    if (!generatedContent || !githubToken || !githubOwner || !githubRepo)
-      return;
+    const contentToSave = isEditingPreview ? editableContent : generatedContent;
+    if (!contentToSave || !githubToken || !githubOwner || !githubRepo) return;
 
     setIsSaving(true);
     try {
@@ -201,7 +348,7 @@ export default function BuilderPage() {
           "X-GitHub-Branch": githubBranch,
         },
         body: JSON.stringify({
-          content: generatedContent,
+          content: contentToSave,
           links: links.filter((link) => link.selected),
           thoughts: parseThoughts(),
         }),
@@ -257,7 +404,10 @@ export default function BuilderPage() {
   };
 
   const exportToJson = () => {
-    if (!generatedContent) return;
+    const contentToExport = isEditingPreview
+      ? editableContent
+      : generatedContent;
+    if (!contentToExport) return;
 
     const currentWeek = getCurrentWeekString();
     const subject = generateSubject();
@@ -267,7 +417,7 @@ export default function BuilderPage() {
       {
         subject,
         preview_text: previewText,
-        content: generatedContent,
+        content: contentToExport,
         description: `theboring.app Newsletter - ${subject}`,
         public: false,
         email_template_id: 2,
@@ -287,7 +437,10 @@ export default function BuilderPage() {
   };
 
   const exportToKit = async () => {
-    if (!generatedContent || !githubToken || !githubOwner || !githubRepo) {
+    const contentToExport = isEditingPreview
+      ? editableContent
+      : generatedContent;
+    if (!contentToExport || !githubToken || !githubOwner || !githubRepo) {
       addToast("GitHub configuration required to export newsletters", "error");
       return;
     }
@@ -311,7 +464,7 @@ export default function BuilderPage() {
         },
         body: JSON.stringify({
           week: getCurrentWeekString(),
-          content: generatedContent,
+          content: contentToExport,
           subject: generateSubject(),
           previewText: generatePreviewText(),
         }),
@@ -345,10 +498,11 @@ export default function BuilderPage() {
   };
 
   const copyToClipboard = async () => {
-    if (!generatedContent) return;
+    const contentToCopy = isEditingPreview ? editableContent : generatedContent;
+    if (!contentToCopy) return;
 
     try {
-      await navigator.clipboard.writeText(generatedContent);
+      await navigator.clipboard.writeText(contentToCopy);
       addToast("Newsletter content copied to clipboard! 📋", "success");
     } catch (error) {
       console.error("Error copying to clipboard:", error);
@@ -505,70 +659,53 @@ export default function BuilderPage() {
             <div className="space-y-6">
               {/* Links Section */}
               <div className="card card-padding">
-                <div className="flex items-center gap-2 mb-4">
-                  <BookmarkPlus className="w-5 h-5 text-neutral-600" />
-                  <h3 className="text-heading text-neutral-900">
-                    Select Links ({selectedLinksCount} selected)
-                  </h3>
-                </div>
-
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {links.length === 0 ? (
-                    <div className="text-center py-8">
-                      <BookmarkPlus className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-                      <p className="text-body text-neutral-500 mb-4">
-                        No links saved yet. Add some links first!
-                      </p>
-                      <Link href="/links" className="btn btn-primary btn-sm">
-                        Add Links
-                      </Link>
-                    </div>
-                  ) : (
-                    links.map((link) => (
-                      <div
-                        key={link.id}
-                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
-                          link.selected
-                            ? "border-primary-500 bg-primary-50"
-                            : "border-neutral-300 hover:border-neutral-400"
-                        }`}
-                        onClick={() => toggleLinkSelection(link.id)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span
-                                className={`px-2 py-1 text-xs rounded-full font-medium ${
-                                  link.category === "tool"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : link.category === "model"
-                                    ? "bg-green-100 text-green-800"
-                                    : link.category === "article"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : "bg-neutral-100 text-neutral-800"
-                                }`}
-                              >
-                                {link.category}
-                              </span>
-                            </div>
-                            <h4 className="font-medium text-sm text-neutral-900 mb-1">
-                              {link.title || "Untitled"}
-                            </h4>
-                            <p className="text-xs text-neutral-600 truncate">
-                              {link.url}
-                            </p>
-                          </div>
-                          <input
-                            type="checkbox"
-                            checked={link.selected}
-                            onChange={() => toggleLinkSelection(link.id)}
-                            className="ml-2 w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
-                          />
-                        </div>
-                      </div>
-                    ))
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <BookmarkPlus className="w-5 h-5 text-neutral-600" />
+                    <h3 className="text-heading text-neutral-900">
+                      Select Links ({selectedLinksCount} selected)
+                    </h3>
+                  </div>
+                  {links.length > 0 && (
+                    <p className="text-caption text-neutral-500">
+                      💡 Drag to reorder
+                    </p>
                   )}
                 </div>
+
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {links.length === 0 ? (
+                      <div className="text-center py-8">
+                        <BookmarkPlus className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
+                        <p className="text-body text-neutral-500 mb-4">
+                          No links saved yet. Add some links first!
+                        </p>
+                        <Link href="/links" className="btn btn-primary btn-sm">
+                          Add Links
+                        </Link>
+                      </div>
+                    ) : (
+                      <SortableContext
+                        items={links}
+                        strategy={verticalListSortingStrategy}
+                      >
+                        {links.map((link) => (
+                          <SortableLinkItem
+                            key={link.id}
+                            link={link}
+                            isSelected={link.selected}
+                            onToggle={() => toggleLinkSelection(link.id)}
+                          />
+                        ))}
+                      </SortableContext>
+                    )}
+                  </div>
+                </DndContext>
               </div>
 
               {/* Thoughts Section */}
@@ -609,25 +746,47 @@ Spent way too much time this week trying to perfect a prompt when I should have 
             {/* Generated Content Preview & Export */}
             <div className="space-y-6">
               <div className="card card-padding">
-                <div className="flex items-center gap-2 mb-4">
-                  <Eye className="w-5 h-5 text-neutral-600" />
-                  <h3 className="text-heading text-neutral-900">
-                    Newsletter Preview
-                  </h3>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Eye className="w-5 h-5 text-neutral-600" />
+                    <h3 className="text-heading text-neutral-900">
+                      Newsletter Preview
+                    </h3>
+                  </div>
+                  {generatedContent && (
+                    <button
+                      onClick={togglePreviewEdit}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      {isEditingPreview ? "Save Changes" : "Edit"}
+                    </button>
+                  )}
                 </div>
 
                 {generatedContent ? (
-                  <div className="prose prose-sm max-w-none border border-neutral-200 rounded-lg p-4 bg-neutral-50 max-h-96 overflow-y-auto">
-                    <div
-                      dangerouslySetInnerHTML={{ __html: generatedContent }}
-                    />
+                  <div className="border border-neutral-200 rounded-lg p-4 bg-neutral-50 max-h-96 overflow-y-auto">
+                    {isEditingPreview ? (
+                      <ContentEditable
+                        html={editableContent}
+                        disabled={false}
+                        onChange={handleContentChange}
+                        className="prose prose-sm max-w-none outline-none bg-white p-3 rounded border focus:ring-2 focus:ring-primary-500"
+                        style={{ minHeight: "200px" }}
+                      />
+                    ) : (
+                      <div
+                        className="prose prose-sm max-w-none"
+                        dangerouslySetInnerHTML={{ __html: generatedContent }}
+                      />
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-neutral-500">
                     <Wand2 className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
                     <p className="text-body mb-2">
-                      Select content and click "Generate Newsletter" to see your
-                      newsletter preview here.
+                      Select content and click &ldquo;Generate Newsletter&rdquo;
+                      to see your newsletter preview here.
                     </p>
                     <p className="text-caption">
                       Newsletters work with just links too — thoughts are
