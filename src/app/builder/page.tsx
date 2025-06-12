@@ -884,61 +884,78 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                         </h1>
                       )}
                       {generatedContent ? (
-                        <div className="p-4 max-w-none overflow-auto max-h-[600px]">
-                          <style>{`
-                            .newsletter-preview h1 {
-                              font-size: 1.5rem;
-                              font-weight: bold;
-                              margin-bottom: 1.25rem;
-                              color: #171717;
-                            }
-                            .newsletter-preview h2 {
-                              font-size: 1.125rem;
-                              font-weight: 600;
-                              margin-bottom: 1rem;
-                              color: #171717;
-                            }
-                            .newsletter-preview h3 {
-                              font-size: 1rem;
-                              font-weight: 500;
-                              margin-bottom: 0.75rem;
-                              color: #171717;
-                            }
-                            .newsletter-preview p {
-                              margin-bottom: 0.75rem;
-                            }
-                            .newsletter-preview ul {
-                              margin-bottom: 1rem;
-                              padding-left: 1.5rem;
-                              list-style-type: disc;
-                            }
-                            .newsletter-preview ol {
-                              margin-bottom: 1rem;
-                              padding-left: 1.5rem;
-                              list-style-type: decimal;
-                            }
-                            .newsletter-preview li {
-                              margin-bottom: 0.25rem;
-                              margin-left: 0.5rem;
-                            }
-                            .newsletter-preview a {
-                              color: #2563eb;
-                              text-decoration: none;
-                            }
-                            .newsletter-preview a:hover {
-                              text-decoration: underline;
-                            }
-                            .newsletter-preview strong, .newsletter-preview b {
-                              font-weight: 600;
-                            }
-                          `}</style>
-
-                          <div
-                            className="newsletter-preview"
-                            dangerouslySetInnerHTML={{
-                              __html: generatedContent,
-                            }}
-                          />
+                        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+                          {isEditingPreview ? (
+                            <div className="relative">
+                              <div className="p-2 bg-neutral-50 border-b border-neutral-200 text-xs text-neutral-600">
+                                Editing HTML - Be careful with formatting
+                              </div>
+                              <textarea
+                                value={editableContent}
+                                onChange={(e) =>
+                                  setEditableContent(e.target.value)
+                                }
+                                className="w-full p-4 font-mono text-sm border-0 resize-none focus:outline-none min-h-[400px] max-h-[600px]"
+                                placeholder="HTML content will appear here..."
+                              />
+                            </div>
+                          ) : (
+                            <div className="p-4 max-w-none overflow-auto max-h-[600px]">
+                              <style>{`
+                              .newsletter-preview h1 {
+                                font-size: 1.5rem;
+                                font-weight: bold;
+                                margin-bottom: 1.25rem;
+                                color: #171717;
+                              }
+                              .newsletter-preview h2 {
+                                font-size: 1.125rem;
+                                font-weight: 600;
+                                margin-bottom: 1rem;
+                                color: #171717;
+                              }
+                              .newsletter-preview h3 {
+                                font-size: 1rem;
+                                font-weight: 500;
+                                margin-bottom: 0.75rem;
+                                color: #171717;
+                              }
+                              .newsletter-preview p {
+                                margin-bottom: 0.75rem;
+                              }
+                              .newsletter-preview ul {
+                                margin-bottom: 1rem;
+                                padding-left: 1.5rem;
+                                list-style-type: disc;
+                              }
+                              .newsletter-preview ol {
+                                margin-bottom: 1rem;
+                                padding-left: 1.5rem;
+                                list-style-type: decimal;
+                              }
+                              .newsletter-preview li {
+                                margin-bottom: 0.25rem;
+                                margin-left: 0.5rem;
+                              }
+                              .newsletter-preview a {
+                                color: #2563eb;
+                                text-decoration: none;
+                              }
+                              .newsletter-preview a:hover {
+                                text-decoration: underline;
+                              }
+                              .newsletter-preview strong, .newsletter-preview b {
+                                font-weight: 600;
+                              }
+                            `}</style>
+                              <div
+                                className="newsletter-preview"
+                                dangerouslySetInnerHTML={{
+                                  __html: generatedContent,
+                                }}
+                              />
+                            </div>
+                          )}
                         </div>
                       ) : (
                         <div className="text-center py-8">
