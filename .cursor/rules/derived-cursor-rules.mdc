@@ -1,7 +1,9 @@
 ---
 description: AI rules derived by SpecStory from the project AI interaction history
 globs: *
+alwaysApply: false
 ---
+
 
 ## <headers/>
 
@@ -11,6 +13,7 @@ globs: *
 
 -   The AI coding assistant must always follow instructions precisely.
 -   The AI coding assistant must adhere to all project rules, coding standards, workflow guidelines, and best practices defined in this file.
+-   The AI coding assistant must make sure files are not getting too large. If so, propose breaking down into smaller components and re-organizing it;
 -   Always use a CLI or a command to install dependencies or kickstart the project. Don't populate the dependencies of the project automatically.
 -   When a user clicks to add a link, the link should be sent to OpenAI to get a title and quick summary to be added to the newsletter later.
     -   Titles should be short and concise, focusing on directly stating what the model is.
@@ -39,6 +42,7 @@ globs: *
 -   @dnd-kit/sortable
 -   @dnd-kit/utilities
 -   react-contenteditable
+-   lodash.debounce
 
 ## PROJECT DOCUMENTATION & CONTEXT SYSTEM
 
@@ -71,6 +75,7 @@ globs: *
 -   Check that the email template ID exists in your account.
 -   Make sure Tailwind CSS is working by checking if basic utility classes apply.
 -   Try clearing Next.js cache: `rm -rf .next` and `npm run dev`.
+- The API call is missing the GitHub configuration headers
 
 ## CODING STANDARDS
 
@@ -117,11 +122,13 @@ globs: *
 ### REACT
 
 -   Adhere to React best practices for component structure and data flow.
+-   To prevent focus loss and unnecessary re-renders, always define components outside of the parent component's render function. Defining components inside another component causes them to be recreated on every render, leading to state loss and UI instability.
 
 ### API ROUTES
 
 -   Handle errors gracefully in API routes.
 -   Return informative error messages to the client.
+-   API calls must include GitHub configuration headers.
 
 ### GITHUB API
 
@@ -142,13 +149,13 @@ your-newsletter-data-repo/
 │   └── 2025/
 │       └── 01/           # Month-based organization
 │           └── links.json
-└── newsletters/
-    └── 2025-W03/         # Week-based organization
-        └── newsletter.json
 ├── links/archive/
 │   └── 2025/
 │       └── 06/           # Month-based organization
 │           └── archived-links.json
+└── newsletters/
+    └── 2025-W03/         # Week-based organization
+        └── newsletter.json
 ```
 
 ## NEWSLETTER TEMPLATE
@@ -197,6 +204,10 @@ your-newsletter-data-repo/
     -   All buttons and inputs should be sized for fingers, not cursors.
     -   The URL input should get focus immediately when opened.
     -   The experience should be as simple as: Tap floating + button (or header button), Paste URL (auto-detects category), Tap category if needed (visual selection), Hit Enter or tap Save.
+-   The Build page's UI should be intuitive, work well on mobile and have some joy to use it, inspired by Arc from the Browser Company, Motion UI and Linear.
+    -   Consider the flow: Sorting Links, Adding Thoughts, Adding more info to the AI Prompt (this is optional, maybe can be hidden under a button), View and Edit Preview, Export.
+    -   The flow should be joyful, yet not colorful, focusing on user experience.
+    -   The preview box should be a bit wider on desktop, otherwise it will be too cropped.
 
 ## LINKS PAGE
 
@@ -223,6 +234,7 @@ your-newsletter-data-repo/
 
 ## BUILD PAGE
 
+-   All links must be automatically selected by default.
 -   The newsletter preview should be editable after generation and before export.
 -   The order of links in the newsletter should be easily sortable, potentially via drag-and-drop functionality.
 -   Drag-and-Drop Link Sorting:
@@ -236,6 +248,40 @@ your-newsletter-data-repo/
     -   Use `react-contenteditable` for in-place editing
     -   Add a "Save Changes" button to confirm edits
     -   All export functions (JSON, Kit.com, Copy) should use the edited content
+-   The "Generate Newsletter" button should be moved below the preview section.
+    -   The button should be visible even if no links are selected, but it should be disabled in this case.
+-   The preview box should be wider on desktop.
+-   Step-by-Step Flow:
+    -   **REMOVED**: Step indicators from the navbar are no longer needed.
+-   Improved Link Selection:
+    -   Beautiful card design with hover effects and smooth transitions
+    -   Custom selection indicators replacing checkboxes with circular indicators
+    -   Enhanced drag handles that appear on hover
+    -   Better visual hierarchy with improved spacing and typography
+-   Mobile-First Experience:
+    -   Responsive layout that works perfectly on all screen sizes
+    -   Touch-friendly interactions with proper sizing
+-   Advanced Features:
+    -   Collapsible AI Instructions section to keep the interface clean
+    -   Smooth animations and transitions throughout
+    -   Better visual feedback for all states (loading, generating, etc.)
+    -   Improved spacing and typography following Linear's design principles
+-   Arc Browser & Motion UI Inspiration:
+    -   Clean, minimal design without overwhelming colors
+    -   Subtle interactions with smooth hover states
+    -   Thoughtful spacing and visual hierarchy
+    -   Delightful micro-animations that feel natural
+    -   Focus on workflow rather than visual noise
+-   Key UX Improvements:
+    1.  Clear progression - Users always know where they are in the process
+    2.  Optional complexity - Advanced features are hidden until needed
+    3.  Mobile optimized - Works beautifully on phones with dedicated CTAs
+    4.  Visual consistency - Every element follows the same design language
+    5.  Joyful but professional - Engaging without being playful
+-   The interface should feel like a premium productivity tool, similar to Linear or Arc Browser, while maintaining focus on the core workflow of building newsletters efficiently.
+-   Remove the Sparkle emoji when generating a newsletter (loading)
+-   After the newsletter has been generated, the generate button should say "regenerate" and should be near the preview box, not under the export box. Maybe it could even be side-by-side the edit button.
+    -   The generate button should only appear when there's no content generated yet.
 
 ## PROJECT SCOPE
 
@@ -253,7 +299,7 @@ your-newsletter-data-repo/
 -   Users can add an additional improvement to the newsletter generation prompt directly on the Generate Newsletter page.
     -   This allows for specific adjustments to the newsletter's content or organization.
     -   The user can specify the order or organization of links within this additional prompt.
--   The core structure of the newsletter generation prompt, including the section for adding links, remains hidden from the user to prevent accidental disruption of the AI's functionality.
+-   The user cannot break the prompt.
 -   The link summarization prompt is customizable, but the final prompt must always adhere to the system's required JSON format.
     -   Even if the user requests a different format, the final prompt must follow the system format:
 
@@ -263,3 +309,48 @@ your-newsletter-data-repo/
   "summary": "How this helps with coding/AI development"
 }
 ```
+-   The HTML link formatting requirements (`**<a href="URL">Title</a>**`) are automatically appended to any custom newsletter generation prompt.
+
+## BUILD PAGE UI/UX
+
+-   The Build page's UI should be intuitive, work well on mobile and have some joy to use it, inspired by Arc from the Browser Company, Motion UI and Linear.
+    -   Consider the flow: Sorting Links, Adding Thoughts, Adding more info to the AI Prompt (this is optional, maybe can be hidden under a button), View and Edit Preview, Export.
+    -   The flow should be joyful, yet not colorful, focusing on user experience.
+    -   The preview box should be a bit wider on desktop, otherwise it will be too cropped.
+
+## SETTINGS PAGE UI/UX
+
+-   Instead of automatic saving for the prompt text areas on the Settings page, add a simple "save" button near the text area and remove the automatic saving from these fields.
+-   Improve the summary prompt, so that we can generate a few highlights from the AI Models and tools. For example, here is a good summary for one AI Model:
+
+```text
+Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to excel in "domain-specific, transparent, and multilingual reasoning".
+◦It's released in two variants: Magistral Small (24B parameter, open-source under Apache 2.0 license) and Magistral Medium (more powerful enterprise version).
+◦ Magistral excels in "chain-of-thought" reasoning across global languages, providing a traceable thought process for better interpretability.
+◦ It boasts 10x faster token throughput in Le Chat compared to many competitors, enabling real-time reasoning.
+◦ Applications span from regulated industries (legal, finance, healthcare) requiring auditable conclusions, to software development (improving project planning, architecture, and design through multi-step actions), and creative writing.
+◦ Magistral Small is available for self-deployment via Hugging Face, while Magistral Medium is accessible via Le Chat preview, API, and cloud marketplaces
+```
+-   For the prompt text areas on the Settings page: add a "reset" button to revert to the default prompt and add a bit of spacing between the save button and the description.
+-   The settings page should no longer scroll and lose focus on the input whenever anything is typed into the text areas.
+    -   Removed the auto-save notification logic from all the prompt-related functions (save and reset).
+    -   Moved Default Prompts Outside Component: The default prompts are now defined outside the component function, so they won't be recreated on every render.
+    -   Removed useEffect Dependencies: The useEffect now has an empty dependency array `[]`, so it only runs once on mount instead of on every render.
+    -   Eliminated Re-render Triggers: The save/reset functions don't trigger the auto-save notification, and the useEffect no longer causes unnecessary re-renders.
+    -   Removed Auto-Save Notification State: Eliminated `lastSaved` and `showSaved` state variables
+    -   Removed Notification Logic: Removed all the code that was triggering state changes and timeouts in the `updateSetting` function
+    -   Removed Notification UI: Removed the notification display from the JSX
+    -   Cleaned Up Imports: Removed the unused `Check` icon import
+-   The solution is to separate the "draft" state of the inputs from the "saved" state by:
+    1.  Creating a second `localSettings` state. This will be updated instantly as you type, providing immediate feedback without lag or focus loss.
+    2.  The `value` of each input will be tied to this `localSettings` state.
+    3.  Using a `useEffect` hook to watch for changes in `localSettings`. When you stop typing for a moment, it will automatically save the changes to localStorage and the main `settings` state in the background.
+-   The issue is that the auto-save notification is triggering page reflows or the `showSaved` state change is causing the component to re-render and lose focus.
+-   The issue is likely that the `updateSetting` function is still being called somewhere, or there could be other re-renders happening.
+-   The issue might be that the `updateSetting` function is still being called somewhere, or there could be other re-renders happening.
+-   Every time any input changes, it triggers the `showSaved` state change, which causes a re-render and layout shift that makes the page lose focus and scroll.
+-   The focus loss is still happening because the `updateSetting` function is calling `setSettings`, which triggers a re-render of the entire component. When the component re-renders, React recreates the input elements and loses focus.
+-   The issue is that updating the main `settings` state on every keystroke forces React to re-render the entire page, which causes the input to lose focus. The `setTimeout` was a clumsy attempt to fix this, but it just delayed the problem and introduced lag.
+-   The inputs are still losing focus after typing anything.
+-   There is a conflict between the "draft" state that you are typing into (`localSettings`) and the "saved" state that controls parts of the UI (`settings`).
+    -   When you type, `localSettings` updates instantly. But the section for "AI Prompt Customization" only appears based on the *saved* `settings.openaiApiKey`. When my auto-save logic finally updates the main `settings` state, React sees that the `settings` object has changed and it re-renders the component, causing the input to lose focus.

@@ -3,11 +3,11 @@
 import { useState, useEffect } from "react";
 import {
   ArrowLeft,
-  Check,
   Github,
   Brain,
   Mail,
   AlertCircle,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -23,9 +23,8 @@ interface SettingsState {
   newsletterPrompt: string;
 }
 
-export default function SettingsPage() {
-  // Default prompts
-  const defaultSummaryPrompt = `You are creating titles and summaries for a "Coding with AI" newsletter. 
+// Default prompts (moved outside component to prevent re-renders)
+const defaultSummaryPrompt = `You are creating titles and detailed summaries for a "Coding with AI" newsletter.
 
 TITLE REQUIREMENTS:
 - Be direct and factual (max 60 characters)
@@ -35,17 +34,31 @@ TITLE REQUIREMENTS:
 - For articles: be descriptive like "OpenAI's new reasoning model" or "How to fine-tune LLMs"
 
 SUMMARY REQUIREMENTS:
-- Relate to coding/development with AI (max 150 characters)
-- Focus on why developers would care
-- Mention specific programming use cases when possible
-- Be practical, not marketing-heavy
+- Start with a brief intro sentence about what it is
+- Follow with bullet points (use ◦ symbol) highlighting key features
+- Focus on developer-relevant aspects: capabilities, use cases, availability
+- Include technical details like model size, pricing, API access when mentioned
+- Keep it practical and informative, not marketing-heavy
+- Each bullet should be a complete thought
 
-Examples:
-- Title: "Claude 3.5 Sonnet" → Summary: "Anthropic's latest model with improved coding abilities and better reasoning for complex programming tasks"
-- Title: "GitHub Copilot Chat" → Summary: "AI pair programmer that helps write code, debug, and explain functions directly in your IDE"
+STRUCTURE FORMAT:
+Brief intro: What it is and who made it.
+◦ Key feature or capability
+◦ Technical specifications (if available)
+◦ Main use cases for developers
+◦ Availability/access information
+
+Example:
+Title: "Magistral by Mistral AI"
+Summary: "Mistral AI's first reasoning model, designed to excel in domain-specific, transparent, and multilingual reasoning.
+◦ Released in two variants: Magistral Small (24B parameter, open-source under Apache 2.0) and Magistral Medium (enterprise version)
+◦ Excels in chain-of-thought reasoning across global languages with traceable thought processes
+◦ 10x faster token throughput compared to competitors, enabling real-time reasoning
+◦ Applications span regulated industries (legal, finance, healthcare) and software development (project planning, architecture)
+◦ Magistral Small available via Hugging Face, Medium via Le Chat preview and API"
 `;
 
-  const defaultNewsletterPrompt = `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
+const defaultNewsletterPrompt = `You are a newsletter writer for theboring.app with a direct, stoic, yet friendly tone.
 
 Structure the newsletter exactly like this:
 1. Start with ONE sentence intro - direct and to the point
@@ -61,6 +74,116 @@ Format requirements:
 
 Use clean HTML formatting. Be concise and valuable.`;
 
+// Component for individual settings sections
+const SettingsSection = ({
+  title,
+  description,
+  icon: Icon,
+  children,
+  isRequired = false,
+}: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  children: React.ReactNode;
+  isRequired?: boolean;
+}) => (
+  <div className="card card-padding">
+    <div className="flex items-start gap-4 mb-6">
+      <div className="flex-shrink-0 p-2 bg-neutral-100 rounded-lg">
+        <Icon className="w-5 h-5 text-neutral-600" />
+      </div>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-heading text-neutral-900">{title}</h3>
+          {isRequired && (
+            <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+              Required
+            </span>
+          )}
+        </div>
+        <p className="text-body">{description}</p>
+      </div>
+    </div>
+    {children}
+  </div>
+);
+
+// Component for text input fields
+const InputField = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  type = "text",
+  required = false,
+  helperText,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  type?: string;
+  required?: boolean;
+  helperText?: string;
+}) => (
+  <div className="space-y-2">
+    <label className="block text-sm font-medium text-neutral-700">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <input
+      type={type}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="input"
+      placeholder={placeholder}
+    />
+    {helperText && (
+      <p className="text-caption text-neutral-500">{helperText}</p>
+    )}
+  </div>
+);
+
+// Component for toggle switches
+const ToggleField = ({
+  label,
+  value,
+  onChange,
+  helperText,
+}: {
+  label: string;
+  value: boolean;
+  onChange: (value: boolean) => void;
+  helperText?: string;
+}) => (
+  <div className="space-y-2">
+    <div className="flex items-center justify-between">
+      <label className="block text-sm font-medium text-neutral-700">
+        {label}
+      </label>
+      <button
+        type="button"
+        onClick={() => onChange(!value)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+          value ? "bg-neutral-900" : "bg-neutral-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+            value ? "translate-x-6" : "translate-x-1"
+          }`}
+        />
+      </button>
+    </div>
+    {helperText && (
+      <p className="text-caption text-neutral-500">{helperText}</p>
+    )}
+  </div>
+);
+
+export default function SettingsPage() {
+  // "Saved" state, loaded once on mount
   const [settings, setSettings] = useState<SettingsState>({
     githubToken: "",
     githubOwner: "",
@@ -72,11 +195,25 @@ Use clean HTML formatting. Be concise and valuable.`;
     summaryPrompt: defaultSummaryPrompt,
     newsletterPrompt: defaultNewsletterPrompt,
   });
-  const [lastSaved, setLastSaved] = useState<string>("");
+
+  // "Draft" state for all inputs to provide instant UI feedback
+  const [localSettings, setLocalSettings] = useState<SettingsState>({
+    githubToken: "",
+    githubOwner: "",
+    githubRepo: "",
+    githubBranch: "main",
+    openaiApiKey: "",
+    kitApiKey: "",
+    autoSummarize: false,
+    summaryPrompt: defaultSummaryPrompt,
+    newsletterPrompt: defaultNewsletterPrompt,
+  });
+
+  const [hasChanges, setHasChanges] = useState(false);
   const [showSaved, setShowSaved] = useState(false);
 
+  // Load settings from localStorage on initial render
   useEffect(() => {
-    // Load settings from localStorage
     const savedSettings = {
       githubToken: localStorage.getItem("github_token") || "",
       githubOwner: localStorage.getItem("github_owner") || "",
@@ -91,177 +228,67 @@ Use clean HTML formatting. Be concise and valuable.`;
         localStorage.getItem("newsletter_prompt") || defaultNewsletterPrompt,
     };
     setSettings(savedSettings);
-  }, [defaultSummaryPrompt, defaultNewsletterPrompt]);
+    setLocalSettings(savedSettings);
+  }, []);
 
-  const updateSetting = (key: keyof SettingsState, value: string | boolean) => {
-    const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
+  // Check for changes between local and saved state
+  useEffect(() => {
+    const changes = JSON.stringify(localSettings) !== JSON.stringify(settings);
+    setHasChanges(changes);
+  }, [localSettings, settings]);
 
-    // Auto-save to localStorage
-    const storageKey =
-      key === "githubToken"
-        ? "github_token"
-        : key === "githubOwner"
-        ? "github_owner"
-        : key === "githubRepo"
-        ? "github_repo"
-        : key === "githubBranch"
-        ? "github_branch"
-        : key === "openaiApiKey"
-        ? "openai_api_key"
-        : key === "autoSummarize"
-        ? "auto_summarize"
-        : key === "summaryPrompt"
-        ? "summary_prompt"
-        : key === "newsletterPrompt"
-        ? "newsletter_prompt"
-        : "kit_api_key";
+  const handleSaveAll = () => {
+    // Save all local changes to localStorage
+    localStorage.setItem("github_token", localSettings.githubToken);
+    localStorage.setItem("github_owner", localSettings.githubOwner);
+    localStorage.setItem("github_repo", localSettings.githubRepo);
+    localStorage.setItem("github_branch", localSettings.githubBranch);
+    localStorage.setItem("openai_api_key", localSettings.openaiApiKey);
+    localStorage.setItem("kit_api_key", localSettings.kitApiKey);
+    localStorage.setItem("auto_summarize", String(localSettings.autoSummarize));
+    localStorage.setItem("summary_prompt", localSettings.summaryPrompt);
+    localStorage.setItem("newsletter_prompt", localSettings.newsletterPrompt);
 
-    localStorage.setItem(storageKey, String(value));
-
-    // Show saved notification
-    const now = new Date().toLocaleTimeString();
-    setLastSaved(now);
+    // Update the main 'saved' state
+    setSettings(localSettings);
+    setHasChanges(false);
     setShowSaved(true);
     setTimeout(() => setShowSaved(false), 2000);
   };
 
-  const SettingsSection = ({
-    title,
-    description,
-    icon: Icon,
-    children,
-    isRequired = false,
-  }: {
-    title: string;
-    description: string;
-    icon: React.ComponentType<{ className?: string }>;
-    children: React.ReactNode;
-    isRequired?: boolean;
-  }) => (
-    <div className="card card-padding">
-      <div className="flex items-start gap-4 mb-6">
-        <div className="flex-shrink-0 p-2 bg-neutral-100 rounded-lg">
-          <Icon className="w-5 h-5 text-neutral-600" />
-        </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-heading text-neutral-900">{title}</h3>
-            {isRequired && (
-              <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                Required
-              </span>
-            )}
-          </div>
-          <p className="text-body">{description}</p>
-        </div>
-      </div>
-      {children}
-    </div>
-  );
+  const saveSummaryPrompt = () => {
+    const newSettings = {
+      ...localSettings,
+      summaryPrompt: localSettings.summaryPrompt,
+    };
+    setLocalSettings(newSettings);
+    setSettings(newSettings);
+    localStorage.setItem("summary_prompt", localSettings.summaryPrompt);
+  };
 
-  const InputField = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-    type = "text",
-    required = false,
-    helperText,
-  }: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    type?: string;
-    required?: boolean;
-    helperText?: string;
-  }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-neutral-700">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input"
-        placeholder={placeholder}
-      />
-      {helperText && (
-        <p className="text-caption text-neutral-500">{helperText}</p>
-      )}
-    </div>
-  );
+  const saveNewsletterPrompt = () => {
+    const newSettings = {
+      ...localSettings,
+      newsletterPrompt: localSettings.newsletterPrompt,
+    };
+    setLocalSettings(newSettings);
+    setSettings(newSettings);
+    localStorage.setItem("newsletter_prompt", localSettings.newsletterPrompt);
+  };
 
-  const ToggleField = ({
-    label,
-    value,
-    onChange,
-    helperText,
-  }: {
-    label: string;
-    value: boolean;
-    onChange: (value: boolean) => void;
-    helperText?: string;
-  }) => (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="block text-sm font-medium text-neutral-700">
-          {label}
-        </label>
-        <button
-          type="button"
-          onClick={() => onChange(!value)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
-            value ? "bg-neutral-900" : "bg-neutral-300"
-          }`}
-        >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-              value ? "translate-x-6" : "translate-x-1"
-            }`}
-          />
-        </button>
-      </div>
-      {helperText && (
-        <p className="text-caption text-neutral-500">{helperText}</p>
-      )}
-    </div>
-  );
+  const resetSummaryPrompt = () => {
+    setLocalSettings((prev) => ({
+      ...prev,
+      summaryPrompt: defaultSummaryPrompt,
+    }));
+  };
 
-  const TextAreaField = ({
-    label,
-    value,
-    onChange,
-    placeholder,
-    rows = 8,
-    helperText,
-  }: {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    placeholder: string;
-    rows?: number;
-    helperText?: string;
-  }) => (
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-neutral-700">
-        {label}
-      </label>
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="input resize-none"
-        rows={rows}
-        placeholder={placeholder}
-      />
-      {helperText && (
-        <p className="text-caption text-neutral-500">{helperText}</p>
-      )}
-    </div>
-  );
+  const resetNewsletterPrompt = () => {
+    setLocalSettings((prev) => ({
+      ...prev,
+      newsletterPrompt: defaultNewsletterPrompt,
+    }));
+  };
 
   const isBasicSetupComplete =
     settings.githubToken && settings.githubOwner && settings.githubRepo;
@@ -269,6 +296,36 @@ Use clean HTML formatting. Be concise and valuable.`;
   return (
     <div className="min-h-screen bg-neutral-50">
       <div className="container-sm py-8">
+        {/* Save bar */}
+        {(hasChanges || showSaved) && (
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl p-4 z-50">
+            <div
+              className={`transition-all duration-300 transform ${
+                hasChanges || showSaved
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-16 opacity-0"
+              }`}
+            >
+              <div className="p-3 bg-neutral-900 rounded-xl shadow-2xl flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {showSaved
+                      ? "Settings saved successfully!"
+                      : "You have unsaved changes."}
+                  </p>
+                </div>
+                <button
+                  onClick={handleSaveAll}
+                  disabled={!hasChanges}
+                  className="btn btn-primary"
+                >
+                  {showSaved ? <Check className="w-5 h-5" /> : "Save Settings"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <Link
@@ -282,16 +339,6 @@ Use clean HTML formatting. Be concise and valuable.`;
             <p className="text-body">Configure your API keys and preferences</p>
           </div>
         </div>
-
-        {/* Auto-save notification */}
-        {showSaved && (
-          <div className="mb-6">
-            <div className="status-success flex items-center gap-2">
-              <Check className="w-4 h-4" />
-              <span>Settings saved automatically at {lastSaved}</span>
-            </div>
-          </div>
-        )}
 
         {/* Setup status */}
         {!isBasicSetupComplete && (
@@ -325,8 +372,10 @@ Use clean HTML formatting. Be concise and valuable.`;
               <div className="md:col-span-2">
                 <InputField
                   label="Personal Access Token"
-                  value={settings.githubToken}
-                  onChange={(value) => updateSetting("githubToken", value)}
+                  value={localSettings.githubToken}
+                  onChange={(value) =>
+                    setLocalSettings({ ...localSettings, githubToken: value })
+                  }
                   placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
                   type="password"
                   required
@@ -335,24 +384,30 @@ Use clean HTML formatting. Be concise and valuable.`;
               </div>
               <InputField
                 label="Repository Owner"
-                value={settings.githubOwner}
-                onChange={(value) => updateSetting("githubOwner", value)}
+                value={localSettings.githubOwner}
+                onChange={(value) =>
+                  setLocalSettings({ ...localSettings, githubOwner: value })
+                }
                 placeholder="your-username"
                 required
                 helperText="Your GitHub username or organization"
               />
               <InputField
                 label="Repository Name"
-                value={settings.githubRepo}
-                onChange={(value) => updateSetting("githubRepo", value)}
+                value={localSettings.githubRepo}
+                onChange={(value) =>
+                  setLocalSettings({ ...localSettings, githubRepo: value })
+                }
                 placeholder="newsletter-data"
                 required
                 helperText="Repository to store your data"
               />
               <InputField
                 label="Branch"
-                value={settings.githubBranch}
-                onChange={(value) => updateSetting("githubBranch", value)}
+                value={localSettings.githubBranch}
+                onChange={(value) =>
+                  setLocalSettings({ ...localSettings, githubBranch: value })
+                }
                 placeholder="main"
                 helperText="Usually 'main' or 'master'"
               />
@@ -369,20 +424,27 @@ Use clean HTML formatting. Be concise and valuable.`;
             <div className="space-y-6">
               <InputField
                 label="API Key"
-                value={settings.openaiApiKey}
-                onChange={(value) => updateSetting("openaiApiKey", value)}
+                value={localSettings.openaiApiKey}
+                onChange={(value) =>
+                  setLocalSettings({ ...localSettings, openaiApiKey: value })
+                }
                 placeholder="sk-xxxxxxxxxxxxxxxxxxxx"
                 type="password"
                 required
                 helperText="Get your API key from platform.openai.com/api-keys"
               />
 
-              {settings.openaiApiKey && (
+              {localSettings.openaiApiKey && (
                 <>
                   <ToggleField
                     label="Auto-summarization"
-                    value={settings.autoSummarize}
-                    onChange={(value) => updateSetting("autoSummarize", value)}
+                    value={localSettings.autoSummarize}
+                    onChange={(value) =>
+                      setLocalSettings({
+                        ...localSettings,
+                        autoSummarize: value,
+                      })
+                    }
                     helperText="Automatically generate titles and descriptions when adding links (disabled by default)"
                   />
 
@@ -399,27 +461,87 @@ Use clean HTML formatting. Be concise and valuable.`;
                       </p>
                     </div>
 
-                    <TextAreaField
-                      label="Link Summarization Prompt"
-                      value={settings.summaryPrompt}
-                      onChange={(value) =>
-                        updateSetting("summaryPrompt", value)
-                      }
-                      placeholder="Enter your custom prompt for link summarization..."
-                      rows={10}
-                      helperText="This prompt is used when AI generates titles and summaries for your saved links. Note: The JSON response format is automatically protected."
-                    />
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-neutral-700">
+                        Link Summarization Prompt
+                      </label>
+                      <textarea
+                        value={localSettings.summaryPrompt}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            summaryPrompt: e.target.value,
+                          })
+                        }
+                        className="input resize-none"
+                        rows={10}
+                        placeholder="Enter your custom prompt for link summarization..."
+                      />
+                      <p className="text-caption text-neutral-500 mb-3">
+                        This prompt is used when AI generates titles and
+                        summaries for your saved links. Note: The JSON response
+                        format is automatically protected.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={saveSummaryPrompt}
+                          className="btn btn-primary btn-sm"
+                          disabled={
+                            localSettings.summaryPrompt ===
+                            settings.summaryPrompt
+                          }
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={resetSummaryPrompt}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
 
-                    <TextAreaField
-                      label="Newsletter Generation Prompt"
-                      value={settings.newsletterPrompt}
-                      onChange={(value) =>
-                        updateSetting("newsletterPrompt", value)
-                      }
-                      placeholder="Enter your custom prompt for newsletter generation..."
-                      rows={8}
-                      helperText="This prompt sets the tone and style for your newsletter content. Note: HTML link formatting requirements are automatically protected."
-                    />
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-neutral-700">
+                        Newsletter Generation Prompt
+                      </label>
+                      <textarea
+                        value={localSettings.newsletterPrompt}
+                        onChange={(e) =>
+                          setLocalSettings({
+                            ...localSettings,
+                            newsletterPrompt: e.target.value,
+                          })
+                        }
+                        className="input resize-none"
+                        rows={8}
+                        placeholder="Enter your custom prompt for newsletter generation..."
+                      />
+                      <p className="text-caption text-neutral-500 mb-3">
+                        This prompt sets the tone and style for your newsletter
+                        content. Note: HTML link formatting requirements are
+                        automatically protected.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={saveNewsletterPrompt}
+                          className="btn btn-primary btn-sm"
+                          disabled={
+                            localSettings.newsletterPrompt ===
+                            settings.newsletterPrompt
+                          }
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={resetNewsletterPrompt}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </>
               )}
@@ -434,8 +556,10 @@ Use clean HTML formatting. Be concise and valuable.`;
           >
             <InputField
               label="API Key"
-              value={settings.kitApiKey}
-              onChange={(value) => updateSetting("kitApiKey", value)}
+              value={localSettings.kitApiKey}
+              onChange={(value) =>
+                setLocalSettings({ ...localSettings, kitApiKey: value })
+              }
               placeholder="your-kit-api-key"
               type="password"
               helperText="Find your API key in Kit.com account settings"

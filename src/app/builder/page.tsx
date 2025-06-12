@@ -3,19 +3,21 @@
 import { useState, useEffect } from "react";
 import { SavedLink, Thought } from "@/types";
 import {
-  Wand2,
   Eye,
-  Save,
   Settings,
   ArrowLeft,
   AlertTriangle,
   BookmarkPlus,
-  FileText,
   Download,
   Send,
   Copy,
   GripVertical,
   Edit3,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  ArrowRight,
+  Sparkles,
 } from "lucide-react";
 import Toast from "@/components/Toast";
 import Link from "next/link";
@@ -44,7 +46,7 @@ interface ToastMessage {
   type: "success" | "error";
 }
 
-// Sortable Link Item Component
+// Sortable Link Item Component - Redesigned
 function SortableLinkItem({
   link,
   isSelected,
@@ -65,60 +67,68 @@ function SortableLinkItem({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
+    transition: isDragging ? "none" : transition,
+    opacity: isDragging ? 0.8 : 1,
+    zIndex: isDragging ? 1000 : "auto",
+  };
+
+  const categoryColors = {
+    tool: "bg-blue-50 text-blue-700 border-blue-200",
+    model: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    article: "bg-purple-50 text-purple-700 border-purple-200",
+    other: "bg-neutral-50 text-neutral-700 border-neutral-200",
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`p-3 border rounded-lg transition-all ${
+      className={`group relative p-4 rounded-xl border-2 transition-all duration-200 hover:shadow-md ${
         isSelected
-          ? "border-primary-500 bg-primary-50"
-          : "border-neutral-300 hover:border-neutral-400"
-      } ${isDragging ? "shadow-lg" : ""}`}
+          ? "border-neutral-900 bg-neutral-50 shadow-sm"
+          : "border-neutral-200 hover:border-neutral-300 bg-white"
+      } ${isDragging ? "shadow-xl scale-[1.02]" : ""}`}
     >
       <div className="flex items-start gap-3">
         {/* Drag Handle */}
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 mt-1"
+          className="cursor-grab active:cursor-grabbing text-neutral-400 hover:text-neutral-600 transition-colors mt-1 opacity-0 group-hover:opacity-100"
         >
           <GripVertical className="w-4 h-4" />
         </div>
 
         {/* Link Content */}
         <div className="flex-1 cursor-pointer" onClick={onToggle}>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-2 mb-2">
             <span
-              className={`px-2 py-1 text-xs rounded-full font-medium ${
-                link.category === "tool"
-                  ? "bg-blue-100 text-blue-800"
-                  : link.category === "model"
-                  ? "bg-green-100 text-green-800"
-                  : link.category === "article"
-                  ? "bg-purple-100 text-purple-800"
-                  : "bg-neutral-100 text-neutral-800"
+              className={`px-2 py-1 text-xs rounded-md font-medium border transition-colors ${
+                categoryColors[link.category as keyof typeof categoryColors] ||
+                categoryColors.other
               }`}
             >
               {link.category}
             </span>
           </div>
-          <h4 className="font-medium text-sm text-neutral-900 mb-1">
+          <h4 className="font-medium text-neutral-900 mb-1 line-clamp-2">
             {link.title || "Untitled"}
           </h4>
-          <p className="text-xs text-neutral-600 truncate">{link.url}</p>
+          <p className="text-sm text-neutral-500 truncate">{link.url}</p>
         </div>
 
-        {/* Checkbox */}
-        <input
-          type="checkbox"
-          checked={isSelected}
-          onChange={onToggle}
-          className="w-4 h-4 text-primary-600 border-neutral-300 rounded focus:ring-primary-500"
-        />
+        {/* Selection Indicator */}
+        <div className="flex items-center">
+          <div
+            className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+              isSelected
+                ? "border-neutral-900 bg-neutral-900"
+                : "border-neutral-300 group-hover:border-neutral-400"
+            }`}
+          >
+            {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -129,7 +139,7 @@ export default function BuilderPage() {
   const [generatedContent, setGeneratedContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+
   const [isExporting, setIsExporting] = useState(false);
   const [thoughtsText, setThoughtsText] = useState("");
   const [githubToken, setGithubToken] = useState("");
@@ -146,6 +156,9 @@ export default function BuilderPage() {
   const [isEditingPreview, setIsEditingPreview] = useState(false);
   const [editableContent, setEditableContent] = useState("");
   const [additionalInstructions, setAdditionalInstructions] = useState("");
+
+  // UI state
+  const [showAdvancedPrompt, setShowAdvancedPrompt] = useState(false);
 
   // Drag and drop sensors
   const sensors = useSensors(
@@ -200,66 +213,57 @@ export default function BuilderPage() {
     repo?: string,
     branch?: string
   ) => {
-    const authToken = token || githubToken;
-    const repoOwner = owner || githubOwner;
-    const repoName = repo || githubRepo;
-    const repoBranch = branch || githubBranch;
-
-    if (!authToken || !repoOwner || !repoName) return;
-
     try {
+      setIsLoading(true);
       const response = await fetch("/api/links", {
         headers: {
-          Authorization: `Bearer ${authToken}`,
-          "X-GitHub-Owner": repoOwner,
-          "X-GitHub-Repo": repoName,
-          "X-GitHub-Branch": repoBranch,
+          Authorization: `Bearer ${token}`,
+          "X-GitHub-Owner": owner || "",
+          "X-GitHub-Repo": repo || "",
+          "X-GitHub-Branch": branch || "main",
         },
       });
 
       if (response.ok) {
-        const linksData = await response.json();
-        setLinks(linksData);
+        const data = await response.json();
+        setLinks(data.map((link: SavedLink) => ({ ...link, selected: true })));
       } else {
-        const error = await response.json();
-        addToast(error.error || "Failed to load links", "error");
+        addToast("Failed to load links", "error");
       }
     } catch (error) {
       console.error("Error loading data:", error);
-      addToast("Network error loading links", "error");
+      addToast("Error loading data", "error");
     } finally {
       setIsLoading(false);
     }
   };
 
   const toggleLinkSelection = (linkId: string) => {
-    setLinks(
-      links.map((link) =>
+    setLinks((prev) =>
+      prev.map((link) =>
         link.id === linkId ? { ...link, selected: !link.selected } : link
       )
     );
   };
 
-  // Handle drag end for reordering links
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
 
     if (active.id !== over?.id) {
-      setLinks((links) => {
-        const oldIndex = links.findIndex((link) => link.id === active.id);
-        const newIndex = links.findIndex((link) => link.id === over?.id);
+      setLinks((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id);
+        const newIndex = items.findIndex((item) => item.id === over?.id);
 
-        return arrayMove(links, oldIndex, newIndex);
+        return arrayMove(items, oldIndex, newIndex);
       });
     }
   };
 
-  // Handle preview editing
   const togglePreviewEdit = () => {
     if (isEditingPreview) {
-      // Save the edited content back to generated content
+      // Save changes
       setGeneratedContent(editableContent);
-      addToast("Newsletter content updated! ✨", "success");
+      addToast("Changes saved", "success");
     }
     setIsEditingPreview(!isEditingPreview);
   };
@@ -271,40 +275,30 @@ export default function BuilderPage() {
   const parseThoughts = (): Thought[] => {
     if (!thoughtsText.trim()) return [];
 
-    // Simple parsing - each paragraph becomes a thought
-    const paragraphs = thoughtsText.split("\n\n").filter((p) => p.trim());
-    return paragraphs.map((content, index) => ({
-      id: `thought-${index}`,
-      title: content.split("\n")[0] || `Thought ${index + 1}`,
-      type: "insight",
-      date: new Date().toISOString(),
-      content,
-      selected: true,
-    }));
+    return thoughtsText
+      .split("\n\n")
+      .filter((thought) => thought.trim())
+      .map((thought, index) => ({
+        id: `thought-${index}`,
+        title: `Thought ${index + 1}`,
+        type: "insight",
+        date: new Date().toISOString(),
+        content: thought.trim(),
+        selected: true,
+      }));
   };
 
   const generateNewsletter = async () => {
-    if (!githubToken || !githubOwner || !githubRepo || !openaiToken) {
-      addToast(
-        "Please complete your GitHub and OpenAI configuration first",
-        "error"
-      );
-      return;
-    }
-
-    const selectedLinks = links.filter((link) => link.selected);
-    const parsedThoughts = parseThoughts();
-
-    if (selectedLinks.length === 0 && parsedThoughts.length === 0) {
-      addToast(
-        "Please select some links or add thoughts to generate a newsletter.",
-        "error"
-      );
-      return;
-    }
-
     setIsGenerating(true);
     try {
+      const selectedLinks = links.filter((link) => link.selected);
+      const thoughts = parseThoughts();
+
+      if (selectedLinks.length === 0 && thoughts.length === 0) {
+        addToast("Please select some links or add thoughts first", "error");
+        return;
+      }
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -313,60 +307,29 @@ export default function BuilderPage() {
         },
         body: JSON.stringify({
           links: selectedLinks,
-          thoughts: parsedThoughts,
+          thoughts,
           additionalInstructions: additionalInstructions.trim() || undefined,
         }),
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        setGeneratedContent(data.content);
-        addToast("Newsletter generated successfully! ✨", "success");
-      } else {
+      if (!response.ok) {
         const error = await response.json();
-        addToast(error.error || "Failed to generate newsletter", "error");
+        throw new Error(error.error || "Failed to generate newsletter");
       }
+
+      const data = await response.json();
+      setGeneratedContent(data.content);
+      addToast("Newsletter generated successfully!", "success");
     } catch (error) {
       console.error("Error generating newsletter:", error);
-      addToast("Network error generating newsletter", "error");
+      addToast(
+        error instanceof Error
+          ? error.message
+          : "Failed to generate newsletter",
+        "error"
+      );
     } finally {
       setIsGenerating(false);
-    }
-  };
-
-  const saveNewsletter = async () => {
-    const contentToSave = isEditingPreview ? editableContent : generatedContent;
-    if (!contentToSave || !githubToken || !githubOwner || !githubRepo) return;
-
-    setIsSaving(true);
-    try {
-      const response = await fetch("/api/newsletter", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${githubToken}`,
-          "X-GitHub-Owner": githubOwner,
-          "X-GitHub-Repo": githubRepo,
-          "X-GitHub-Branch": githubBranch,
-        },
-        body: JSON.stringify({
-          content: contentToSave,
-          links: links.filter((link) => link.selected),
-          thoughts: parseThoughts(),
-        }),
-      });
-
-      if (response.ok) {
-        addToast("Newsletter saved successfully! 📝", "success");
-      } else {
-        const error = await response.json();
-        addToast(error.error || "Failed to save newsletter", "error");
-      }
-    } catch (error) {
-      console.error("Error saving newsletter:", error);
-      addToast("Network error saving newsletter", "error");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -556,98 +519,71 @@ export default function BuilderPage() {
     }
   };
 
-  const selectedLinksCount = links.filter((link) => link.selected).length;
-  const hasRequiredTokens =
-    githubToken && githubOwner && githubRepo && openaiToken;
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin w-8 h-8 border-2 border-neutral-300 border-t-neutral-600 rounded-full mx-auto mb-4"></div>
-          <p className="text-body">Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-900 mx-auto mb-4"></div>
+          <p className="text-neutral-600">Loading your data...</p>
         </div>
       </div>
     );
   }
 
+  const selectedLinksCount = links.filter((link) => link.selected).length;
+  const thoughtsCount = parseThoughts().length;
+  const hasRequiredTokens =
+    githubToken && githubOwner && githubRepo && openaiToken;
+
+  // Step completion logic
+  const step1Complete = selectedLinksCount > 0;
+  const step2Complete = thoughtsCount > 0 || step1Complete; // Thoughts are optional
+  const step3Complete = generatedContent.length > 0;
+
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="container py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="p-2 hover:bg-neutral-100 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 text-neutral-600" />
-            </Link>
-            <div>
-              <h1 className="text-title text-neutral-900">Create Newsletter</h1>
-              <p className="text-body">
-                Select content and let AI craft your newsletter
-              </p>
+      {/* Header */}
+      <div className="bg-white border-b border-neutral-200 sticky top-0 z-40">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-4">
+              <Link
+                href="/"
+                className="p-2 -ml-2 hover:bg-neutral-100 rounded-lg transition-colors"
+              >
+                <ArrowLeft className="w-5 h-5 text-neutral-600" />
+              </Link>
+              <div>
+                <h1 className="text-lg font-semibold text-neutral-900">
+                  Build Newsletter
+                </h1>
+                <p className="text-sm text-neutral-600 hidden sm:block">
+                  Create your weekly newsletter in minutes
+                </p>
+              </div>
             </div>
           </div>
-
-          {hasRequiredTokens && (
-            <div className="flex gap-3">
-              <button
-                onClick={generateNewsletter}
-                disabled={isGenerating}
-                className="btn btn-primary"
-              >
-                <Wand2 className="w-4 h-4" />
-                {isGenerating ? "Generating..." : "Generate Newsletter"}
-              </button>
-              {generatedContent && (
-                <button
-                  onClick={saveNewsletter}
-                  disabled={isSaving}
-                  className="btn btn-secondary"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? "Saving..." : "Save"}
-                </button>
-              )}
-            </div>
-          )}
         </div>
+      </div>
 
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Configuration Check */}
         {!hasRequiredTokens && (
           <div className="mb-8">
-            <div className="card card-padding bg-amber-50 border-amber-200">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
               <div className="flex items-start gap-4">
                 <AlertTriangle className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0" />
                 <div className="flex-1 text-center">
-                  <h3 className="text-heading text-amber-900 mb-2">
-                    Configuration Required
+                  <h3 className="text-lg font-semibold text-amber-900 mb-2">
+                    Almost ready!
                   </h3>
-                  <p className="text-body text-amber-800 mb-4">
-                    You need to configure GitHub repository and OpenAI API key
-                    to build newsletters.
-                    {!githubToken &&
-                      !githubOwner &&
-                      !githubRepo &&
-                      !openaiToken &&
-                      " Nothing is configured yet."}
-                    {(!githubToken || !githubOwner || !githubRepo) &&
-                      !openaiToken &&
-                      " GitHub repository and OpenAI API key are missing."}
-                    {githubToken &&
-                      githubOwner &&
-                      githubRepo &&
-                      !openaiToken &&
-                      " OpenAI API key is missing."}
-                    {(!githubToken || !githubOwner || !githubRepo) &&
-                      openaiToken &&
-                      " GitHub repository configuration is missing."}
+                  <p className="text-amber-800 mb-4">
+                    Let&apos;s get your GitHub and OpenAI API keys configured so
+                    you can start building newsletters.
                   </p>
                   <Link href="/settings" className="btn btn-primary">
                     <Settings className="w-4 h-4" />
-                    Configure Settings
+                    Complete Setup
                   </Link>
                 </div>
               </div>
@@ -656,235 +592,385 @@ export default function BuilderPage() {
         )}
 
         {hasRequiredTokens && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Content Selection */}
-            <div className="space-y-6">
-              {/* Links Section */}
-              <div className="card card-padding">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <BookmarkPlus className="w-5 h-5 text-neutral-600" />
-                    <h3 className="text-heading text-neutral-900">
-                      Select Links ({selectedLinksCount} selected)
-                    </h3>
-                  </div>
-                  {links.length > 0 && (
-                    <p className="text-caption text-neutral-500">
-                      💡 Drag to reorder
-                    </p>
-                  )}
-                </div>
-
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={handleDragEnd}
-                >
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {links.length === 0 ? (
-                      <div className="text-center py-8">
-                        <BookmarkPlus className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-                        <p className="text-body text-neutral-500 mb-4">
-                          No links saved yet. Add some links first!
-                        </p>
-                        <Link href="/links" className="btn btn-primary btn-sm">
-                          Add Links
-                        </Link>
+          <div className="max-w-7xl mx-auto">
+            {/* Main Content Area */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+              {/* Left Column - Input */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Step 1: Select Links */}
+                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                  <div className="p-6 border-b border-neutral-100">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                            step1Complete
+                              ? "bg-emerald-500 text-white"
+                              : "bg-neutral-900 text-white"
+                          }`}
+                        >
+                          {step1Complete ? (
+                            <CheckCircle2 className="w-4 h-4" />
+                          ) : (
+                            "1"
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-neutral-900">
+                            Select Links
+                          </h3>
+                          <p className="text-sm text-neutral-600">
+                            {selectedLinksCount} of {links.length} selected
+                          </p>
+                        </div>
                       </div>
-                    ) : (
-                      <SortableContext
-                        items={links}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {links.map((link) => (
-                          <SortableLinkItem
-                            key={link.id}
-                            link={link}
-                            isSelected={link.selected}
-                            onToggle={() => toggleLinkSelection(link.id)}
-                          />
-                        ))}
-                      </SortableContext>
-                    )}
+                      {links.length > 0 && (
+                        <div className="hidden sm:flex items-center gap-2 text-sm text-neutral-500">
+                          <GripVertical className="w-4 h-4" />
+                          Drag to reorder
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </DndContext>
-              </div>
 
-              {/* Thoughts Section */}
-              <div className="card card-padding">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5 text-neutral-600" />
-                  <h3 className="text-heading text-neutral-900">
-                    Add Your Thoughts
-                  </h3>
+                  <div className="p-6">
+                    <DndContext
+                      sensors={sensors}
+                      collisionDetection={closestCenter}
+                      onDragEnd={handleDragEnd}
+                    >
+                      {links.length === 0 ? (
+                        <div className="text-center py-12">
+                          <BookmarkPlus className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
+                          <h4 className="text-lg font-medium text-neutral-900 mb-2">
+                            No links saved yet
+                          </h4>
+                          <p className="text-neutral-600 mb-6">
+                            Add some links first to start building your
+                            newsletter.
+                          </p>
+                          <Link href="/links" className="btn btn-primary">
+                            <BookmarkPlus className="w-4 h-4" />
+                            Add Your First Link
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                          <SortableContext
+                            items={links}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {links.map((link) => (
+                              <SortableLinkItem
+                                key={link.id}
+                                link={link}
+                                isSelected={link.selected}
+                                onToggle={() => toggleLinkSelection(link.id)}
+                              />
+                            ))}
+                          </SortableContext>
+                        </div>
+                      )}
+                    </DndContext>
+                  </div>
                 </div>
 
-                <p className="text-body mb-4">
-                  Optional, but makes it more personal. What did you learn? What
-                  caught your attention?
-                </p>
+                {/* Step 2: Add Thoughts */}
+                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                  <div className="p-6 border-b border-neutral-100">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          step2Complete && step1Complete
+                            ? "bg-emerald-500 text-white"
+                            : step1Complete
+                            ? "bg-neutral-900 text-white"
+                            : "bg-neutral-300 text-neutral-500"
+                        }`}
+                      >
+                        {step2Complete && step1Complete ? (
+                          <CheckCircle2 className="w-4 h-4" />
+                        ) : (
+                          "2"
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-neutral-900">
+                          Add Your Thoughts
+                        </h3>
+                        <p className="text-sm text-neutral-600">
+                          Optional • {thoughtsCount} thoughts added
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
-                <textarea
-                  value={thoughtsText}
-                  onChange={(e) => setThoughtsText(e.target.value)}
-                  className="input resize-none"
-                  rows={8}
-                  placeholder="What did you learn this week? What caught your attention? Any insights worth sharing?
+                  <div className="p-6">
+                    <p className="text-neutral-600 mb-4">
+                      Share your insights, learnings, or observations from this
+                      week. Each paragraph becomes a separate thought.
+                    </p>
 
-Each paragraph becomes a separate thought, so feel free to just brain dump here.
+                    <textarea
+                      value={thoughtsText}
+                      onChange={(e) => setThoughtsText(e.target.value)}
+                      className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
+                      rows={6}
+                      placeholder="What did you learn this week? Any insights worth sharing?
 
 For example:
 AI tools are getting crazy good, but honestly half the battle is just knowing which one to use when.
 
 Spent way too much time this week trying to perfect a prompt when I should have just tried a different model."
-                />
-
-                <p className="text-caption text-neutral-500 mt-2">
-                  {parseThoughts().length} thoughts will be included
-                </p>
-              </div>
-
-              {/* Additional Instructions for AI */}
-              <div className="card card-padding">
-                <div className="flex items-center gap-2 mb-4">
-                  <Wand2 className="w-5 h-5 text-neutral-600" />
-                  <h3 className="text-heading text-neutral-900">
-                    AI Instructions (Optional)
-                  </h3>
+                    />
+                  </div>
                 </div>
 
-                <p className="text-body mb-4">
-                  Give specific instructions for this newsletter. For example,
-                  organize links by importance, focus on certain themes, or use
-                  a specific tone.
-                </p>
+                {/* Step 2.5: Advanced AI Instructions (Collapsible) */}
+                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                  <button
+                    onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
+                    className="w-full p-6 text-left hover:bg-neutral-50 transition-colors"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Sparkles className="w-5 h-5 text-neutral-600" />
+                        <div>
+                          <h3 className="text-lg font-semibold text-neutral-900">
+                            AI Instructions
+                          </h3>
+                          <p className="text-sm text-neutral-600">
+                            Optional • Customize this newsletter&apos;s
+                            generation
+                          </p>
+                        </div>
+                      </div>
+                      {showAdvancedPrompt ? (
+                        <ChevronUp className="w-5 h-5 text-neutral-400" />
+                      ) : (
+                        <ChevronDown className="w-5 h-5 text-neutral-400" />
+                      )}
+                    </div>
+                  </button>
 
-                <textarea
-                  value={additionalInstructions}
-                  onChange={(e) => setAdditionalInstructions(e.target.value)}
-                  className="input resize-none"
-                  rows={3}
-                  placeholder="e.g., 'Put tools first, then models, organize by relevance to mobile development' or 'Use a more casual tone this week' or 'Focus on the practical benefits for startups'"
-                />
-
-                <p className="text-caption text-neutral-500 mt-2">
-                  💡 These instructions will guide the AI for this specific
-                  newsletter
-                </p>
-              </div>
-            </div>
-
-            {/* Generated Content Preview & Export */}
-            <div className="space-y-6">
-              <div className="card card-padding">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-5 h-5 text-neutral-600" />
-                    <h3 className="text-heading text-neutral-900">
-                      Newsletter Preview
-                    </h3>
-                  </div>
-                  {generatedContent && (
-                    <button
-                      onClick={togglePreviewEdit}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      <Edit3 className="w-4 h-4" />
-                      {isEditingPreview ? "Save Changes" : "Edit"}
-                    </button>
+                  {showAdvancedPrompt && (
+                    <div className="px-6 pb-6 border-t border-neutral-100">
+                      <p className="text-neutral-600 mb-4 mt-4">
+                        Give specific instructions for this newsletter&apos;s
+                        tone, organization, or focus.
+                      </p>
+                      <textarea
+                        value={additionalInstructions}
+                        onChange={(e) =>
+                          setAdditionalInstructions(e.target.value)
+                        }
+                        className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
+                        rows={3}
+                        placeholder="e.g., 'Put tools first, then models' or 'Use a more casual tone' or 'Focus on practical benefits for startups'"
+                      />
+                    </div>
                   )}
                 </div>
-
-                {generatedContent ? (
-                  <div className="border border-neutral-200 rounded-lg p-4 bg-neutral-50 max-h-96 overflow-y-auto">
-                    {isEditingPreview ? (
-                      <ContentEditable
-                        html={editableContent}
-                        disabled={false}
-                        onChange={handleContentChange}
-                        className="prose prose-sm max-w-none outline-none bg-white p-3 rounded border focus:ring-2 focus:ring-primary-500"
-                        style={{ minHeight: "200px" }}
-                      />
-                    ) : (
-                      <div
-                        className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{ __html: generatedContent }}
-                      />
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 text-neutral-500">
-                    <Wand2 className="w-12 h-12 mx-auto mb-4 text-neutral-300" />
-                    <p className="text-body mb-2">
-                      Select content and click &ldquo;Generate Newsletter&rdquo;
-                      to see your newsletter preview here.
-                    </p>
-                    <p className="text-caption">
-                      Newsletters work with just links too — thoughts are
-                      optional!
-                    </p>
-                  </div>
-                )}
               </div>
 
-              {/* Export Options */}
-              {generatedContent && (
-                <div className="card card-padding">
-                  <h3 className="text-heading text-neutral-900 mb-4">
-                    Export Options
-                  </h3>
+              {/* Right Column - Preview & Export */}
+              <div className="lg:col-span-2">
+                <div className="sticky top-24 space-y-6">
+                  {/* Step 3: Preview */}
+                  <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                    <div className="p-6 border-b border-neutral-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                              step3Complete
+                                ? "bg-emerald-500 text-white"
+                                : step1Complete
+                                ? "bg-neutral-900 text-white"
+                                : "bg-neutral-300 text-neutral-500"
+                            }`}
+                          >
+                            {step3Complete ? (
+                              <CheckCircle2 className="w-4 h-4" />
+                            ) : (
+                              "3"
+                            )}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-neutral-900">
+                              Preview
+                            </h3>
+                            <p className="text-sm text-neutral-600">
+                              Review and edit
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {generatedContent && (
+                            <>
+                              <button
+                                onClick={generateNewsletter}
+                                disabled={
+                                  isGenerating || selectedLinksCount === 0
+                                }
+                                className="btn btn-ghost btn-sm"
+                              >
+                                {isGenerating ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-neutral-600"></div>
+                                ) : (
+                                  <Sparkles className="w-4 h-4" />
+                                )}
+                                {isGenerating
+                                  ? "Regenerating..."
+                                  : "Regenerate"}
+                              </button>
+                              <button
+                                onClick={togglePreviewEdit}
+                                className="btn btn-ghost btn-sm"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                                {isEditingPreview ? "Save" : "Edit"}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
 
-                  <div className="space-y-3">
-                    <button
-                      onClick={exportToKit}
-                      disabled={isExporting || !kitToken}
-                      className={`btn w-full ${
-                        !kitToken ? "btn-secondary opacity-50" : "btn-primary"
-                      }`}
-                    >
-                      <Send className="w-4 h-4" />
-                      {isExporting
-                        ? "Creating draft..."
-                        : !kitToken
-                        ? "Kit.com token required"
-                        : "Create Kit.com Draft"}
-                    </button>
-
-                    <button
-                      onClick={exportToJson}
-                      className="btn btn-secondary w-full"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download JSON
-                    </button>
-
-                    <button
-                      onClick={copyToClipboard}
-                      className="btn btn-secondary w-full"
-                    >
-                      <Copy className="w-4 h-4" />
-                      Copy to Clipboard
-                    </button>
+                    <div className="p-6">
+                      {generatedContent ? (
+                        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+                          {isEditingPreview ? (
+                            <ContentEditable
+                              html={editableContent}
+                              disabled={false}
+                              onChange={handleContentChange}
+                              className="p-4 outline-none min-h-[200px] prose prose-sm max-w-none"
+                            />
+                          ) : (
+                            <div
+                              className="p-4 prose prose-sm max-w-none"
+                              dangerouslySetInnerHTML={{
+                                __html: generatedContent,
+                              }}
+                            />
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Eye className="w-8 h-8 mx-auto mb-3 text-neutral-300" />
+                          <p className="text-neutral-500 text-sm">
+                            Your newsletter preview will appear here
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Next Step */}
-        {generatedContent && (
-          <div className="mt-12 text-center">
-            <div className="card card-padding bg-emerald-50 border-emerald-200 inline-block">
-              <p className="text-body text-emerald-800 mb-4">
-                Newsletter created! View all your newsletters or create another
-                one.
-              </p>
-              <Link href="/newsletters" className="btn btn-primary">
-                View All Newsletters
-                <ArrowLeft className="w-4 h-4 rotate-180" />
-              </Link>
+                  {/* Step 4: Export */}
+                  {generatedContent && (
+                    <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                      <div className="p-6 border-b border-neutral-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center">
+                            4
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-neutral-900">
+                              Export
+                            </h3>
+                            <p className="text-sm text-neutral-600">
+                              Share your newsletter
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="p-6 space-y-3">
+                        <button
+                          onClick={exportToKit}
+                          disabled={isExporting || !kitToken}
+                          className={`btn w-full ${
+                            !kitToken
+                              ? "btn-secondary opacity-50"
+                              : "btn-primary"
+                          }`}
+                        >
+                          <Send className="w-4 h-4" />
+                          {isExporting
+                            ? "Creating draft..."
+                            : !kitToken
+                            ? "Kit.com (Setup required)"
+                            : "Create Kit.com Draft"}
+                        </button>
+
+                        <button
+                          onClick={copyToClipboard}
+                          className="btn btn-secondary w-full"
+                        >
+                          <Copy className="w-4 h-4" />
+                          Copy to Clipboard
+                        </button>
+
+                        <button
+                          onClick={exportToJson}
+                          className="btn btn-ghost w-full"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download JSON
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Initial Generate Button - only show when no content */}
+                  {!generatedContent && (
+                    <div className="mt-6">
+                      <button
+                        onClick={generateNewsletter}
+                        disabled={isGenerating || selectedLinksCount === 0}
+                        className={`btn w-full py-4 text-lg ${
+                          selectedLinksCount === 0
+                            ? "btn-secondary opacity-50 cursor-not-allowed"
+                            : "btn-primary"
+                        }`}
+                      >
+                        {!isGenerating && <Sparkles className="w-5 h-5" />}
+                        {isGenerating ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Generating newsletter...
+                          </>
+                        ) : selectedLinksCount === 0 ? (
+                          "Select links to generate"
+                        ) : (
+                          "Generate Newsletter"
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {/* Success State */}
+            {generatedContent && (
+              <div className="mt-12 text-center">
+                <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl px-6 py-4">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <span className="text-emerald-800 font-medium">
+                    Newsletter ready!
+                  </span>
+                  <Link
+                    href="/newsletters"
+                    className="text-emerald-700 hover:text-emerald-800 font-medium flex items-center gap-1"
+                  >
+                    View all newsletters
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -894,10 +980,10 @@ Spent way too much time this week trying to perfect a prompt when I should have 
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full">
             <div className="p-6">
-              <h3 className="text-title text-neutral-900 mb-4">
+              <h3 className="text-lg font-semibold text-neutral-900 mb-4">
                 Archive Used Links?
               </h3>
-              <p className="text-body text-neutral-600 mb-6">
+              <p className="text-neutral-600 mb-6">
                 Your newsletter has been exported successfully! Would you like
                 to archive the {links.filter((link) => link.selected).length}{" "}
                 links you used? This will help you start fresh for your next
@@ -921,7 +1007,7 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                 </button>
               </div>
 
-              <p className="text-caption text-neutral-500 mt-4">
+              <p className="text-sm text-neutral-500 mt-4">
                 Archived links will be saved to your repository and removed from
                 your active collection.
               </p>
