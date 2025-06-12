@@ -152,7 +152,7 @@ your-newsletter-data-repo/
 ├── links/archive/
 │   └── 2025/
 │       └── 06/           # Month-based organization
-│           └── archived-links.json
+│       └── archived-links.json
 └── newsletters/
     └── 2025-W03/         # Week-based organization
         └── newsletter.json
@@ -235,6 +235,27 @@ your-newsletter-data-repo/
     -   The custom prompt must be base64 encoded before being sent as the `X-Custom-Prompt` header due to HTTP header restrictions on ISO-8859-1 characters.
 -   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers.
 -   The description is no longer being cropped, let the Newsletter generation crop it later on
+-   The links page must be fully mobile-friendly.
+    -   The header must stack vertically on mobile to prevent overflow.
+    -   The header title and badge should wrap properly without breaking the layout.
+    -   The "Add Link" button should be hidden on mobile in favor of the floating action button.
+-   The Add Link modal must be fully mobile-optimized.
+    -   The modal should take up the full height on mobile for better usability.
+    -   All buttons and inputs should have increased padding (`py-4`) for finger-friendly interaction.
+    -   There should be better spacing between form elements for a cleaner mobile experience.
+    -   The `touch-manipulation` CSS property should be added for responsive touch feedback.
+    -   The modal should close when tapping outside the content area.
+-   The floating action button should be enhanced for mobile.
+    -   The size should be increased from 56px to 64px (`w-16 h-16`) for easier tapping.
+    -   The plus icon should be increased to `w-7 h-7` for better visibility.
+    -   The button should only be visible on mobile (`sm:hidden`) to avoid redundancy.
+-   The table layout should be improved for mobile responsiveness.
+    -   Tables should scroll horizontally when content exceeds screen width.
+    -   Appropriate column widths should be set to prevent cramped layouts.
+    -   The scrollable area should extend edge-to-edge for a better mobile scrolling experience.
+-   Safe area support should be added for devices with home indicators.
+-   Category buttons should have increased padding for easier selection on mobile.
+-   Input fields should have larger heights for a better mobile typing experience.
 
 ## BUILD PAGE
 
@@ -360,3 +381,4 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
     -   When you type, `localSettings` updates instantly. But the section for "AI Prompt Customization" only appears based on the *saved* `settings.openaiApiKey`. When my auto-save logic finally updates the main `settings` state, React sees that the `settings` object has changed and it re-renders the component, causing the input to lose focus.
 -   The application must always use the prompt saved on the client side for summarizing links. If no prompt is found, the backend's default will be used.
 -   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers, web scraping needs, and the need for proper headers.
+-   The newsletter generation route must also use the user's custom prompt.

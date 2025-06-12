@@ -299,6 +299,9 @@ export default function BuilderPage() {
         return;
       }
 
+      // Get custom prompt from localStorage
+      const customPrompt = localStorage.getItem("newsletter_prompt");
+
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: {
@@ -308,6 +311,7 @@ export default function BuilderPage() {
         body: JSON.stringify({
           links: selectedLinks,
           thoughts,
+          customPrompt: customPrompt || undefined,
           additionalInstructions: additionalInstructions.trim() || undefined,
         }),
       });

@@ -37,21 +37,24 @@ export default function Navigation() {
   return (
     <header className="border-b border-neutral-200 bg-white">
       <div className="container">
-        <div className="flex items-center justify-between py-4">
-          {/* Logo */}
-          <Link href="/" className="group">
+        <div className="flex items-center justify-between py-4 gap-4">
+          {/* Logo - Responsive */}
+          <Link href="/" className="group flex-shrink-0">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-neutral-900 rounded-lg flex items-center justify-center">
                 <div className="w-3 h-3 bg-white rounded-sm"></div>
               </div>
-              <span className="font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors">
+              <span className="font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors hidden sm:block">
                 Newsletter Builder
+              </span>
+              <span className="font-semibold text-neutral-900 group-hover:text-neutral-700 transition-colors sm:hidden">
+                NB
               </span>
             </div>
           </Link>
 
-          {/* Navigation */}
-          <nav className="flex items-center gap-1">
+          {/* Navigation - Responsive */}
+          <nav className="flex items-center gap-1 flex-1 justify-center min-w-0">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -60,21 +63,21 @@ export default function Navigation() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-2 px-2 sm:px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive
                       ? "bg-primary-50 text-primary-700"
                       : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-50"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
-                  {item.label}
+                  <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               );
             })}
           </nav>
 
-          {/* Settings with warning indicator */}
-          <div className="relative">
+          {/* Settings with warning indicator - Always visible */}
+          <div className="relative flex-shrink-0">
             <Link
               href="/settings"
               className={`p-2 rounded-lg transition-colors ${

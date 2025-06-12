@@ -426,41 +426,45 @@ export default function LinksPage() {
       <div className="container py-8">
         {/* Header with improved hierarchy */}
         <div
-          className={`flex items-center justify-between mb-8 transition-all duration-700 ease-out ${
+          className={`mb-8 transition-all duration-700 ease-out ${
             isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
           }`}
         >
-          <div className="flex items-center gap-4">
-            <Link
-              href="/"
-              className="p-2 hover:bg-neutral-100 rounded-lg transition-all duration-200 hover:scale-110"
-            >
-              <ArrowLeft className="w-5 h-5 text-neutral-600" />
-            </Link>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-title text-neutral-900">Collect Links</h1>
-                {links.length > 0 && (
-                  <div className="px-2 py-1 bg-neutral-100 rounded-full text-xs font-medium text-neutral-600">
-                    {links.length} saved
-                  </div>
-                )}
+          {/* Mobile: Stack vertically, Desktop: Side by side */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0 flex-1">
+              <Link
+                href="/"
+                className="p-2 hover:bg-neutral-100 rounded-lg transition-all duration-200 hover:scale-110 flex-shrink-0"
+              >
+                <ArrowLeft className="w-5 h-5 text-neutral-600" />
+              </Link>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-3 mb-1 flex-wrap">
+                  <h1 className="text-title text-neutral-900">Collect Links</h1>
+                  {links.length > 0 && (
+                    <div className="px-2 py-1 bg-neutral-100 rounded-full text-xs font-medium text-neutral-600 flex-shrink-0">
+                      {links.length} saved
+                    </div>
+                  )}
+                </div>
+                <p className="text-body text-neutral-600">
+                  Save AI tools, models, and articles you discover
+                </p>
               </div>
-              <p className="text-body">
-                Save AI tools, models, and articles you discover
-              </p>
             </div>
-          </div>
 
-          {isConfigured && (
-            <button
-              onClick={openAddForm}
-              className="btn btn-primary group hover:scale-105 transition-all duration-200 cursor-pointer"
-            >
-              <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-              Add Link
-            </button>
-          )}
+            {/* Desktop: Show button, Mobile: Hidden (use FAB instead) */}
+            {isConfigured && (
+              <button
+                onClick={openAddForm}
+                className="hidden sm:flex btn btn-primary group hover:scale-105 transition-all duration-200 cursor-pointer flex-shrink-0"
+              >
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+                Add Link
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Configuration Check - Improved design */}
@@ -613,21 +617,21 @@ export default function LinksPage() {
                       </button>
                     </div>
                   ) : (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
+                    <div className="overflow-x-auto -mx-6 px-6">
+                      <table className="w-full min-w-[640px]">
                         <thead>
                           <tr className="border-b border-neutral-200">
                             <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 w-8"></th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 min-w-[200px]">
                               Title
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden md:table-cell">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden md:table-cell min-w-[200px]">
                               Description
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden lg:table-cell">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden lg:table-cell min-w-[100px]">
                               Category
                             </th>
-                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden lg:table-cell">
+                            <th className="text-left py-3 px-2 text-sm font-medium text-neutral-600 hidden lg:table-cell min-w-[100px]">
                               Added
                             </th>
                             <th className="text-right py-3 px-2 text-sm font-medium text-neutral-600 w-24">
@@ -774,7 +778,7 @@ export default function LinksPage() {
                             </div>
                           </div>
                           <div className="overflow-x-auto">
-                            <table className="w-full">
+                            <table className="w-full min-w-[600px]">
                               <tbody>
                                 {group.links.map((link) => (
                                   <tr
@@ -859,23 +863,26 @@ export default function LinksPage() {
               }
             }}
           >
-            {/* Mobile: Bottom sheet, Desktop: Centered modal */}
-            <div className="bg-white w-full sm:max-w-lg sm:w-full sm:rounded-xl shadow-lg max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200 bg-white sticky top-0">
+            {/* Mobile: Full-screen bottom sheet, Desktop: Centered modal */}
+            <div
+              className="bg-white w-full sm:max-w-lg sm:w-full sm:rounded-xl shadow-lg h-full sm:h-auto sm:max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header - Fixed height for mobile */}
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-neutral-200 bg-white flex-shrink-0">
                 <h2 className="text-lg sm:text-title font-semibold text-neutral-900">
                   Add Link
                 </h2>
                 <button
                   onClick={closeAddForm}
-                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 hover:bg-neutral-100 rounded-lg transition-colors cursor-pointer flex-shrink-0"
                   aria-label="Close"
                 >
                   <ArrowLeft className="w-5 h-5 text-neutral-600" />
                 </button>
               </div>
 
-              {/* Content */}
+              {/* Content - Scrollable */}
               <div className="flex-1 overflow-y-auto">
                 <div className="p-4 sm:p-6 space-y-6">
                   {/* URL Input - Primary focus */}
@@ -893,7 +900,7 @@ export default function LinksPage() {
                           saveLink();
                         }
                       }}
-                      className="w-full px-4 py-4 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-none"
+                      className="w-full px-4 py-4 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                       placeholder="https://..."
                       autoFocus
                       required
@@ -929,7 +936,7 @@ export default function LinksPage() {
                               category: category.value as SavedLink["category"],
                             })
                           }
-                          className={`p-3 rounded-lg border-2 transition-all text-left cursor-pointer ${
+                          className={`p-4 rounded-lg border-2 transition-all text-left cursor-pointer touch-manipulation ${
                             newLink.category === category.value
                               ? "border-neutral-900 bg-neutral-50 text-neutral-900"
                               : "border-neutral-200 text-neutral-600 hover:border-neutral-300"
@@ -943,10 +950,10 @@ export default function LinksPage() {
                     </div>
                   </div>
 
-                  {/* Optional Fields - Collapsible on mobile */}
-                  <div className="space-y-4">
+                  {/* Optional Fields - Better mobile spacing */}
+                  <div className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      <label className="block text-sm font-medium text-neutral-700 mb-3">
                         Title (optional)
                       </label>
                       <input
@@ -955,13 +962,13 @@ export default function LinksPage() {
                         onChange={(e) =>
                           setNewLink({ ...newLink, title: e.target.value })
                         }
-                        className="w-full px-4 py-3 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
+                        className="w-full px-4 py-4 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                         placeholder="AI will suggest a title"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-neutral-700 mb-2">
+                      <label className="block text-sm font-medium text-neutral-700 mb-3">
                         Description (optional)
                       </label>
                       <textarea
@@ -972,8 +979,8 @@ export default function LinksPage() {
                             description: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-none"
-                        rows={3}
+                        className="w-full px-4 py-4 text-base border border-neutral-300 rounded-lg focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-none"
+                        rows={4}
                         placeholder="AI will create a summary"
                       />
                     </div>
@@ -981,15 +988,15 @@ export default function LinksPage() {
                 </div>
               </div>
 
-              {/* Actions - Sticky bottom */}
-              <div className="p-4 sm:p-6 border-t border-neutral-200 bg-white sticky bottom-0">
+              {/* Actions - Fixed bottom with safe area */}
+              <div className="p-4 sm:p-6 border-t border-neutral-200 bg-white flex-shrink-0 pb-safe">
                 <div className="space-y-3">
                   {/* AI Summarize button - Full width on mobile */}
                   {openaiApiKey && newLink.url && (
                     <button
                       onClick={summarizeLink}
                       disabled={isGeneratingSummary}
-                      className="w-full py-3 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg transition-colors text-sm font-medium cursor-pointer disabled:opacity-50"
+                      className="w-full py-4 px-4 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 rounded-lg transition-colors text-base font-medium cursor-pointer disabled:opacity-50 touch-manipulation"
                     >
                       {isGeneratingSummary ? (
                         <>
@@ -1005,11 +1012,11 @@ export default function LinksPage() {
                     </button>
                   )}
 
-                  {/* Primary action */}
+                  {/* Primary action - Larger on mobile */}
                   <button
                     onClick={saveLink}
                     disabled={isSaving || !newLink.url}
-                    className="w-full py-4 px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors text-base font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full py-4 px-4 bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg transition-colors text-base font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
                   >
                     {isSaving ? (
                       <>
@@ -1030,14 +1037,14 @@ export default function LinksPage() {
         )}
       </div>
 
-      {/* Floating Action Button - Mobile Only */}
+      {/* Floating Action Button - Mobile Only - Enhanced */}
       {isConfigured && (
         <button
           onClick={openAddForm}
-          className="fixed bottom-6 right-6 md:hidden w-14 h-14 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40 cursor-pointer"
+          className="fixed bottom-6 right-6 sm:hidden w-16 h-16 bg-neutral-900 hover:bg-neutral-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center z-40 cursor-pointer touch-manipulation"
           aria-label="Add new link"
         >
-          <Plus className="w-6 h-6" />
+          <Plus className="w-7 h-7" />
         </button>
       )}
 
