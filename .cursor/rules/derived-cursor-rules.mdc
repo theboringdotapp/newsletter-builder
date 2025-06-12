@@ -1,9 +1,7 @@
 ---
 description: AI rules derived by SpecStory from the project AI interaction history
 globs: *
-alwaysApply: false
 ---
-
 
 ## <headers/>
 
@@ -21,6 +19,7 @@ alwaysApply: false
 -   All API Key setup must be on a dedicated settings page, accessible via a toggle in the header. If a feature requires a key that is not set, show a warning on the page with a button to open the settings.
 -   The "add links" feature must be super easy to use on mobile. The goal is to make submitting a link from a phone as quick as possible, ideally as simple as sending a WhatsApp message.
 -   The "Add Links" modal should be accessible via URL, so that it can be opened easily on mobile.
+-   The application should always use the custom prompts edited in the settings page when summarizing links.
 
 ### CONFLICT RESOLUTION
 
@@ -76,6 +75,7 @@ alwaysApply: false
 -   Make sure Tailwind CSS is working by checking if basic utility classes apply.
 -   Try clearing Next.js cache: `rm -rf .next` and `npm run dev`.
 - The API call is missing the GitHub configuration headers
+-   String contains non ISO-8859-1 code point error: Occurs because HTTP headers can only contain ISO-8859-1 characters, but the custom prompt might contain special characters, emojis, or other Unicode characters. Ensure the custom prompt is encoded (base64) before sending it as a header.
 
 ## CODING STANDARDS
 
@@ -231,6 +231,10 @@ your-newsletter-data-repo/
         -   Title and description are empty
         -   1 second delay has passed
     -   The "✨ Auto-fill with AI" button is always available regardless of the setting.
+-   When summarizing links, the custom prompt from `localStorage` will be sent in the `X-Custom-Prompt` header to the backend. If no prompt is found, the backend's default will be used.
+    -   The custom prompt must be base64 encoded before being sent as the `X-Custom-Prompt` header due to HTTP header restrictions on ISO-8859-1 characters.
+-   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers.
+-   The description is no longer being cropped, let the Newsletter generation crop it later on
 
 ## BUILD PAGE
 
@@ -296,7 +300,7 @@ your-newsletter-data-repo/
 
 -   Users can customize the prompts used for summarizing links and generating newsletters.
 -   Both prompts are editable on the Settings page, within the OpenAI section.
--   Users can add an additional improvement to the newsletter generation prompt directly on the Generate Newsletter page.
+-   Users can add an additional improvement to the newsletter generation prompt directly on the Generate NEwsletter page.
     -   This allows for specific adjustments to the newsletter's content or organization.
     -   The user can specify the order or organization of links within this additional prompt.
 -   The user cannot break the prompt.
@@ -354,3 +358,5 @@ Magistral by Mistral AI: This is Mistral AI's first reasoning model, designed to
 -   The inputs are still losing focus after typing anything.
 -   There is a conflict between the "draft" state that you are typing into (`localSettings`) and the "saved" state that controls parts of the UI (`settings`).
     -   When you type, `localSettings` updates instantly. But the section for "AI Prompt Customization" only appears based on the *saved* `settings.openaiApiKey`. When my auto-save logic finally updates the main `settings` state, React sees that the `settings` object has changed and it re-renders the component, causing the input to lose focus.
+-   The application must always use the prompt saved on the client side for summarizing links. If no prompt is found, the backend's default will be used.
+-   A backend is required to fetch webpage content for link summarization due to CORS restrictions in browsers, web scraping needs, and the need for proper headers.

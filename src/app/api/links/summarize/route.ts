@@ -54,16 +54,30 @@ export async function POST(request: Request) {
     }
 
     // Get custom summary prompt from client or use default
-    const customPrompt = await request.headers.get("X-Custom-Prompt");
+    const customPromptHeader = request.headers.get("X-Custom-Prompt");
+    const customPrompt = customPromptHeader
+      ? decodeURIComponent(escape(atob(customPromptHeader)))
+      : null;
 
-    // Import the function at the top if it wasn't already imported
-    const { getCustomSummaryPrompt } = await import("@/lib/openai");
+    // Default prompt if no custom prompt is provided
+    const defaultPrompt = `You are an AI assistant helping to categorize and summarize links for a "Coding with AI" newsletter.
+
+Your task is to:
+1. Extract the main topic/title from the content
+2. Write a brief summary focusing on how this relates to AI development and coding
+3. Keep the tone professional but accessible
+4. Focus on practical value for developers working with AI
+
+Guidelines:
+- Titles should be direct and factual (avoid marketing language)
+- Summaries should explain the practical value for AI developers
+- Keep both title and summary concise and clear`;
 
     // Always ensure JSON format requirements are protected
     const summaryPrompt = customPrompt
       ? customPrompt +
         `\n\nRespond in JSON format:\n{\n  "title": "Direct factual title",\n  "summary": "How this helps with coding/AI development"\n}`
-      : getCustomSummaryPrompt() +
+      : defaultPrompt +
         `\n\nRespond in JSON format:\n{\n  "title": "Direct factual title",\n  "summary": "How this helps with coding/AI development"\n}`;
 
     // Generate title and summary using OpenAI
@@ -89,8 +103,8 @@ Context: This is for a "Coding with AI" newsletter. The link should be categoriz
 Focus on the programming/development angle and why developers building with AI would find this useful.`,
         },
       ],
-      max_tokens: 300,
-      temperature: 0.3,
+      max_tokens: 1000,
+      temperature: 0.2,
     });
 
     const result = completion.choices[0]?.message?.content;
@@ -123,7 +137,7 @@ Focus on the programming/development angle and why developers building with AI w
         result.match(/title:\s*([^\n]+)/i) ||
         result.match(/^([^\n]+)/);
       if (titleMatch) {
-        title = titleMatch[1].replace(/['"]/g, "").trim().substring(0, 60);
+        title = titleMatch[1].replace(/['"]/g, "").trim();
       }
 
       // Look for summary patterns
@@ -131,7 +145,7 @@ Focus on the programming/development angle and why developers building with AI w
         result.match(/"summary":\s*"([^"]+)"/i) ||
         result.match(/summary:\s*([^\n]+)/i);
       if (summaryMatch) {
-        summary = summaryMatch[1].replace(/['"]/g, "").trim().substring(0, 150);
+        summary = summaryMatch[1].replace(/['"]/g, "").trim();
       }
 
       return NextResponse.json({

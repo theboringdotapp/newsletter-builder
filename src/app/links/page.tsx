@@ -251,11 +251,23 @@ export default function LinksPage() {
 
     setIsGeneratingSummary(true);
     try {
+      // Get custom prompt from localStorage
+      const customPrompt = localStorage.getItem("summary_prompt");
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add custom prompt header if it exists (encode to handle special characters)
+      if (customPrompt) {
+        headers["X-Custom-Prompt"] = btoa(
+          unescape(encodeURIComponent(customPrompt))
+        );
+      }
+
       const response = await fetch("/api/links/summarize", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           url: newLink.url,
           openaiApiKey: openaiApiKey,
