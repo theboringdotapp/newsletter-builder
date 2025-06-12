@@ -13,6 +13,8 @@ globs: *
 -   The AI coding assistant must adhere to all project rules, coding standards, workflow guidelines, and best practices defined in this file.
 -   Always use a CLI or a command to install dependencies or kickstart the project. Don't populate the dependencies of the project automatically.
 -   When a user clicks to add a link, the link should be sent to OpenAI to get a title and quick summary to be added to the newsletter later.
+    -   Titles should be short and concise, focusing on directly stating what the model is.
+    -   Summaries should relate the news to the context of the newsletter "Coding with AI".
 -   All API Key setup must be on a dedicated settings page, accessible via a toggle in the header. If a feature requires a key that is not set, show a warning on the page with a button to open the settings.
 
 ### CONFLICT RESOLUTION
@@ -48,6 +50,10 @@ globs: *
 -   The app uses serverless functions and works perfectly on Vercel's free tier.
 -   The app is a standard Next.js application and can be deployed to: Netlify, Railway, DigitalOcean App Platform, or any platform supporting Node.js.
 
+### POST-NEWSLETTER ACTIONS
+
+-   After exporting the newsletter, prompt the user to archive all used links. This allows them to start fresh for the next newsletter.
+
 ## DEBUGGING
 
 -   Ensure your repository is public or your token has the right permissions.
@@ -69,6 +75,38 @@ globs: *
 ### TAILWIND CSS
 
 -   Modify styles in `src/app/globals.css` or component files.
+-   Make sure you update the cursor when hovering a clickable element.
+-   Modern Button System:
+    -   `.btn`: Base class for all buttons.
+    -   `.btn-primary`: Primary button style.
+    -   `.btn-secondary`: Secondary button style.
+    -   `.btn-ghost`: Ghost button style.
+    -   `.btn-sm`: Small button size.
+    -   `.btn-lg`: Large button size.
+-   Modern Card System:
+    -   `.card`: Base class for all cards.
+    -   `.card-padding`: Standard card padding.
+    -   `.card-padding-sm`: Small card padding.
+    -   `.card-padding-lg`: Large card padding.
+-   Modern Input System:
+    -   `.input`: Base class for all input fields.
+-   Typography:
+    -   `.text-display`: Display text style.
+    -   `.text-title`: Title text style.
+    -   `.text-heading`: Heading text style.
+    -   `.text-body`: Body text style.
+    -   `.text-caption`: Caption text style.
+-   Status Messages:
+    -   `.status-success`: Success message style.
+    -   `.status-error`: Error message style.
+    -   `.status-warning`: Warning message style.
+-   Utilities:
+    -   `.container`: Standard page container.
+    -   `.container-sm`: Smaller page container.
+    -   `.divider`: Horizontal divider line.
+    -   `.section-spacing`: Standard section spacing.
+    -   `.section-spacing-sm`: Smaller section spacing.
+    -   `.section-spacing-lg`: Larger section spacing.
 
 ### REACT
 
@@ -101,6 +139,10 @@ your-newsletter-data-repo/
 └── newsletters/
     └── 2025-W03/         # Week-based organization
         └── newsletter.json
+├── links/archive/
+│   └── 2025/
+│       └── 06/           # Month-based organization
+│           └── archived-links.json
 ```
 
 ## NEWSLETTER TEMPLATE
@@ -116,8 +158,38 @@ your-newsletter-data-repo/
     2.  "This Week's Edition" summary with bullet points of what's included
     3.  Individual sections with clear headers and emojis
     4.  Personal, approachable, and genuinely helpful tone
+-   Newsletter tone: Direct, straight to the point, stoic yet friendly.
+    -   Pre-links: Max one line.
+    -   Links list: Title of the link in bold (clickable), followed by the summary underneath. No extra context needed.
+    -   Footer: One line asking for feedback.
 
 ## USER INTERFACE & USER EXPERIENCE
 
--   The settings page should have a Linear inspired UI and UX: Minimal, straight to the point. Notify the user when things are auto-saved.
--   Add back buttons to every page, allowing navigation back from pages like "Add Links".
+-   The UI and UX of this project should emulate design principles from Linear, Motion UI, Uber, and Airbnb.
+-   The UI and UX of this project must be simple, minimal, and intuitive, without being overwhelming.
+-   The UI and UX must feel modern, without being too over the top.
+-   The user experience should feel like the user is following a story.
+-   The homepage UI/UX should be revamped to create a more product-focused, story-driven experience.
+-   If everything is setup (e.g., API keys), the settings should not be visible to the user. We should only show about the API keys in case the user has never set it up.
+-   The homepage must adapt based on user configuration status.
+-   The homepage should implement smart routing: unconfigured users go to settings, configured users to main features.
+-   The homepage should have a clear narrative: "Collect → Generate → Export".
+-   The main flows of the homepage should be prominently displayed as the primary story, with secondary features (past newsletters) appropriately de-emphasized.
+-   The homepage should have direct, action-oriented copy: "Build your newsletter in minutes".
+-   The homepage should have a card-based layout with subtle interactions.
+-   The homepage should maintain consistent spacing and typography using existing design system.
+-   The homepage should use a neutral color palette with purposeful contrast.
+-   The homepage should have subtle process indicator for configured users.
+-   The homepage should have clear calls-to-action that guide users to the right next step.
+-   The homepage should have hover states with subtle color transitions.
+-   The card-based navigation on the homepage should feel native to product tools.
+-   The homepage should implement progressive enhancement for different user states.
+-   Ensure every page is mobile-friendly.
+
+## LINKS PAGE
+
+-   Links on the links page (`@page.tsx`) must be displayed in a table format instead of cards. Retain the same data.
+-   The "Archived Links" button should be a tab on the table.
+-   The "Create Newsletter" CTA must be removed from the bottom of the links page.
+-   A lazy-loaded view for archived links must be implemented.
+    -   Archived links are retrieved from the `links/archive/` directory structure.

@@ -59,22 +59,44 @@ export async function POST(request: Request) {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that creates concise titles and summaries for web links. 
-          Given a URL and its content (if available), create:
-          1. A clear, descriptive title (max 100 characters)
-          2. A brief summary explaining what the link is about and why it might be interesting (max 200 characters)
+          content: `You are creating titles and summaries for a "Coding with AI" newsletter. 
+
+          TITLE REQUIREMENTS:
+          - Be direct and factual (max 60 characters)
+          - Don't be creative or clever, just state what it is
+          - For AI models: use format like "Claude 3.5 Sonnet" or "GPT-4 Turbo"
+          - For tools: use format like "GitHub Copilot" or "Cursor IDE"
+          - For articles: be descriptive like "OpenAI's new reasoning model" or "How to fine-tune LLMs"
           
-          Focus on being accurate and helpful. If the content seems to be about AI tools, models, or articles, highlight the key value proposition.
+          SUMMARY REQUIREMENTS:
+          - Relate to coding/development with AI (max 150 characters)
+          - Focus on why developers would care
+          - Mention specific programming use cases when possible
+          - Be practical, not marketing-heavy
           
-          Respond in the following JSON format:
+          Examples:
+          - Title: "Claude 3.5 Sonnet" → Summary: "Anthropic's latest model with improved coding abilities and better reasoning for complex programming tasks"
+          - Title: "GitHub Copilot Chat" → Summary: "AI pair programmer that helps write code, debug, and explain functions directly in your IDE"
+          
+          Respond in JSON format:
           {
-            "title": "Your title here",
-            "summary": "Your summary here"
+            "title": "Direct factual title",
+            "summary": "How this helps with coding/AI development"
           }`,
         },
         {
           role: "user",
-          content: `URL: ${url}\n\nContent: ${pageContent}`,
+          content: `URL: ${url}
+
+Content: ${pageContent}
+
+Context: This is for a "Coding with AI" newsletter. The link should be categorized as one of:
+- AI Tool: Development tools that use AI (IDEs, coding assistants, etc.)
+- AI Model: Language models, APIs, or AI services for developers
+- Article: Technical articles, tutorials, or news about AI in development
+- Other: AI-related resources that don't fit the above
+
+Focus on the programming/development angle and why developers building with AI would find this useful.`,
         },
       ],
       max_tokens: 300,
@@ -101,12 +123,27 @@ export async function POST(request: Request) {
         parseError
       );
 
-      // Fallback: use the raw response and try to extract useful info
-      const title =
-        result.split("\n")[0]?.replace(/['"]/g, "").substring(0, 100) ||
-        "Untitled";
-      const summary =
-        result.substring(0, 200) || "AI-generated content summary";
+      // Try to extract structured data from the response
+      const lines = result.split("\n").filter((line) => line.trim());
+      let title = "AI Tool or Resource";
+      let summary = "AI-related content for developers";
+
+      // Look for title patterns
+      const titleMatch =
+        result.match(/"title":\s*"([^"]+)"/i) ||
+        result.match(/title:\s*([^\n]+)/i) ||
+        result.match(/^([^\n]+)/);
+      if (titleMatch) {
+        title = titleMatch[1].replace(/['"]/g, "").trim().substring(0, 60);
+      }
+
+      // Look for summary patterns
+      const summaryMatch =
+        result.match(/"summary":\s*"([^"]+)"/i) ||
+        result.match(/summary:\s*([^\n]+)/i);
+      if (summaryMatch) {
+        summary = summaryMatch[1].replace(/['"]/g, "").trim().substring(0, 150);
+      }
 
       return NextResponse.json({
         title,

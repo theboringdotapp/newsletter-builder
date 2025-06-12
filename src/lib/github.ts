@@ -65,6 +65,47 @@ export class GitHubStorage {
     await this.saveFile(path, JSON.stringify(links, null, 2));
   }
 
+  async archiveLinks(usedLinkIds: string[]): Promise<void> {
+    try {
+      // Get current links
+      const currentLinks = await this.getLinks();
+
+      // Filter out used links
+      const remainingLinks = currentLinks.filter(
+        (link) => !usedLinkIds.includes(link.id)
+      );
+
+      // Get used links
+      const usedLinks = currentLinks.filter((link) =>
+        usedLinkIds.includes(link.id)
+      );
+
+      // Save remaining links back to current location
+      await this.updateLinks(remainingLinks);
+
+      // Save used links to archive with newsletter week
+      if (usedLinks.length > 0) {
+        const archivePath = `links/archive/${new Date().getFullYear()}/${String(
+          new Date().getMonth() + 1
+        ).padStart(2, "0")}/archived-${Date.now()}.json`;
+        await this.saveFile(
+          archivePath,
+          JSON.stringify(
+            {
+              archivedAt: new Date().toISOString(),
+              links: usedLinks,
+            },
+            null,
+            2
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error archiving links:", error);
+      throw error;
+    }
+  }
+
   async saveNewsletterData(data: NewsletterData): Promise<void> {
     const path = `newsletters/${data.week}/newsletter.json`;
     await this.saveFile(path, JSON.stringify(data, null, 2));
@@ -78,6 +119,86 @@ export class GitHubStorage {
       return content ? JSON.parse(content) : null;
     } catch {
       return null;
+    }
+  }
+
+  async getArchivedLinks(): Promise<
+    { archivedAt: string; links: SavedLink[] }[]
+  > {
+    try {
+      // Get the archive directory structure
+      const archiveBasePath = `links/archive`;
+      const archives: { archivedAt: string; links: SavedLink[] }[] = [];
+
+      // Get years in archive
+      const yearsResponse = await this.octokit.repos.getContent({
+        owner: this.owner,
+        repo: this.repo,
+        path: archiveBasePath,
+        ref: this.branch,
+      });
+
+      if (Array.isArray(yearsResponse.data)) {
+        for (const yearItem of yearsResponse.data) {
+          if (yearItem.type === "dir") {
+            // Get months in this year
+            const monthsResponse = await this.octokit.repos.getContent({
+              owner: this.owner,
+              repo: this.repo,
+              path: `${archiveBasePath}/${yearItem.name}`,
+              ref: this.branch,
+            });
+
+            if (Array.isArray(monthsResponse.data)) {
+              for (const monthItem of monthsResponse.data) {
+                if (monthItem.type === "dir") {
+                  // Get archive files in this month
+                  const filesResponse = await this.octokit.repos.getContent({
+                    owner: this.owner,
+                    repo: this.repo,
+                    path: `${archiveBasePath}/${yearItem.name}/${monthItem.name}`,
+                    ref: this.branch,
+                  });
+
+                  if (Array.isArray(filesResponse.data)) {
+                    for (const file of filesResponse.data) {
+                      if (
+                        file.type === "file" &&
+                        file.name.startsWith("archived-") &&
+                        file.name.endsWith(".json")
+                      ) {
+                        const content = await this.getFile(file.path);
+                        if (content) {
+                          const archiveData = JSON.parse(content);
+                          archives.push(archiveData);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Sort by archived date (newest first)
+      return archives.sort(
+        (a, b) =>
+          new Date(b.archivedAt).getTime() - new Date(a.archivedAt).getTime()
+      );
+    } catch (error: unknown) {
+      if (
+        error &&
+        typeof error === "object" &&
+        "status" in error &&
+        error.status === 404
+      ) {
+        // No archive directory exists yet
+        return [];
+      }
+      console.error("Error getting archived links:", error);
+      throw error;
     }
   }
 
