@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { SavedLink, Thought } from "@/types";
+import { SavedLink } from "@/types";
 import {
   Eye,
   Settings,
@@ -140,7 +140,6 @@ export default function BuilderPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   const [isExporting, setIsExporting] = useState(false);
-  const [thoughtsText, setThoughtsText] = useState("");
   const [githubToken, setGithubToken] = useState("");
   const [githubOwner, setGithubOwner] = useState("");
   const [githubRepo, setGithubRepo] = useState("");
@@ -270,30 +269,13 @@ export default function BuilderPage() {
     setIsEditingPreview(!isEditingPreview);
   };
 
-  const parseThoughts = (): Thought[] => {
-    if (!thoughtsText.trim()) return [];
-
-    return thoughtsText
-      .split("\n\n")
-      .filter((thought) => thought.trim())
-      .map((thought, index) => ({
-        id: `thought-${index}`,
-        title: `Thought ${index + 1}`,
-        type: "insight",
-        date: new Date().toISOString(),
-        content: thought.trim(),
-        selected: true,
-      }));
-  };
-
   const generateNewsletter = async () => {
     setIsGenerating(true);
     try {
       const selectedLinks = links.filter((link) => link.selected);
-      const thoughts = parseThoughts();
 
-      if (selectedLinks.length === 0 && thoughts.length === 0) {
-        addToast("Please select some links or add thoughts first", "error");
+      if (selectedLinks.length === 0) {
+        addToast("Please select some links first", "error");
         return;
       }
 
@@ -308,7 +290,7 @@ export default function BuilderPage() {
         },
         body: JSON.stringify({
           links: selectedLinks,
-          thoughts,
+          thoughts: [], // Empty array since we're not using thoughts anymore
           customPrompt: customPrompt || undefined,
           additionalInstructions: additionalInstructions.trim() || undefined,
         }),
@@ -536,14 +518,12 @@ export default function BuilderPage() {
   }
 
   const selectedLinksCount = links.filter((link) => link.selected).length;
-  const thoughtsCount = parseThoughts().length;
   const hasRequiredTokens =
     githubToken && githubOwner && githubRepo && openaiToken;
 
   // Step completion logic
   const step1Complete = selectedLinksCount > 0;
-  const step2Complete = thoughtsCount > 0 || step1Complete; // Thoughts are optional
-  const step3Complete = generatedContent.length > 0;
+  const step2Complete = generatedContent.length > 0; // Step 2 is now preview
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -600,7 +580,7 @@ export default function BuilderPage() {
           <div className="max-w-7xl mx-auto">
             {/* Main Content Area */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
-              {/* Left Column - Input */}
+              {/* Left Column - Links (3/5 of the width) */}
               <div className="lg:col-span-3 space-y-6">
                 {/* Step 1: Select Links */}
                 <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
@@ -660,7 +640,7 @@ export default function BuilderPage() {
                           </Link>
                         </div>
                       ) : (
-                        <div className="space-y-3 max-h-96 overflow-y-auto">
+                        <div className="space-y-3 overflow-y-auto">
                           <SortableContext
                             items={links}
                             strategy={verticalListSortingStrategy}
@@ -678,107 +658,6 @@ export default function BuilderPage() {
                       )}
                     </DndContext>
                   </div>
-                </div>
-
-                {/* Step 2: Add Thoughts */}
-                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                  <div className="p-4 sm:p-6 border-b border-neutral-100">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                          step2Complete && step1Complete
-                            ? "bg-emerald-500 text-white"
-                            : step1Complete
-                            ? "bg-neutral-900 text-white"
-                            : "bg-neutral-300 text-neutral-500"
-                        }`}
-                      >
-                        {step2Complete && step1Complete ? (
-                          <CheckCircle2 className="w-4 h-4" />
-                        ) : (
-                          "2"
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-neutral-900">
-                          Add Your Thoughts
-                        </h3>
-                        <p className="text-sm text-neutral-600">
-                          Optional • {thoughtsCount} thoughts added
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="p-4 sm:p-6">
-                    <p className="text-neutral-600 mb-4">
-                      Share your insights, learnings, or observations from this
-                      week. Each paragraph becomes a separate thought.
-                    </p>
-
-                    <textarea
-                      value={thoughtsText}
-                      onChange={(e) => setThoughtsText(e.target.value)}
-                      className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
-                      rows={6}
-                      placeholder="What did you learn this week? Any insights worth sharing?
-
-For example:
-AI tools are getting crazy good, but honestly half the battle is just knowing which one to use when.
-
-Spent way too much time this week trying to perfect a prompt when I should have just tried a different model."
-                    />
-                  </div>
-                </div>
-
-                {/* Step 2.5: Advanced AI Instructions (Collapsible) */}
-                <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
-                  <button
-                    onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
-                    className="w-full p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Sparkles className="w-5 h-5 text-neutral-600" />
-                        <div>
-                          <h3 className="text-lg font-semibold text-neutral-900">
-                            AI Instructions
-                          </h3>
-                          <p className="text-sm text-neutral-600">
-                            Optional • Customize this newsletter&apos;s
-                            generation
-                          </p>
-                        </div>
-                      </div>
-                      {showAdvancedPrompt ? (
-                        <ChevronUp className="w-5 h-5 text-neutral-400" />
-                      ) : (
-                        <ChevronDown className="w-5 h-5 text-neutral-400" />
-                      )}
-                    </div>
-                  </button>
-
-                  {showAdvancedPrompt && (
-                    <div className="border-t border-neutral-100">
-                      <div className="p-4 sm:p-6">
-                        <p className="text-neutral-600 mb-4">
-                          Add specific instructions for this newsletter&apos;s
-                          generation. This will be combined with your default
-                          prompt.
-                        </p>
-
-                        <textarea
-                          value={additionalInstructions}
-                          onChange={(e) =>
-                            setAdditionalInstructions(e.target.value)
-                          }
-                          className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
-                          rows={4}
-                          placeholder="For example: Focus more on the practical applications of these tools, or group similar tools together, or add more context about why these are important this week..."
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Mobile Generate Button */}
@@ -809,27 +688,77 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                 </div>
               </div>
 
-              {/* Right Column - Preview & Export */}
+              {/* Right Column - AI Instructions, Preview & Export (2/5 of the width) */}
               <div className="lg:col-span-2">
                 <div className="lg:sticky lg:top-24 space-y-6">
-                  {/* Step 3: Preview */}
+                  {/* AI Instructions (moved from left column) */}
+                  <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
+                    <button
+                      onClick={() => setShowAdvancedPrompt(!showAdvancedPrompt)}
+                      className="w-full p-4 sm:p-6 text-left hover:bg-neutral-50 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Sparkles className="w-5 h-5 text-neutral-600" />
+                          <div>
+                            <h3 className="text-lg font-semibold text-neutral-900">
+                              AI Instructions
+                            </h3>
+                            <p className="text-sm text-neutral-600">
+                              Optional • Customize this newsletter&apos;s
+                              generation
+                            </p>
+                          </div>
+                        </div>
+                        {showAdvancedPrompt ? (
+                          <ChevronUp className="w-5 h-5 text-neutral-400" />
+                        ) : (
+                          <ChevronDown className="w-5 h-5 text-neutral-400" />
+                        )}
+                      </div>
+                    </button>
+
+                    {showAdvancedPrompt && (
+                      <div className="border-t border-neutral-100">
+                        <div className="p-4 sm:p-6">
+                          <p className="text-neutral-600 mb-4">
+                            Add specific instructions for this newsletter&apos;s
+                            generation. This will be combined with your default
+                            prompt.
+                          </p>
+
+                          <textarea
+                            value={additionalInstructions}
+                            onChange={(e) =>
+                              setAdditionalInstructions(e.target.value)
+                            }
+                            className="w-full p-4 border border-neutral-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-all"
+                            rows={4}
+                            placeholder="For example: Focus more on the practical applications of these tools, or group similar tools together, or add more context about why these are important this week..."
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Step 2: Preview */}
                   <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
                     <div className="p-4 sm:p-6 border-b border-neutral-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                              step3Complete
+                              step2Complete
                                 ? "bg-emerald-500 text-white"
                                 : step1Complete
                                 ? "bg-neutral-900 text-white"
                                 : "bg-neutral-300 text-neutral-500"
                             }`}
                           >
-                            {step3Complete ? (
+                            {step2Complete ? (
                               <CheckCircle2 className="w-4 h-4" />
                             ) : (
-                              "3"
+                              "2"
                             )}
                           </div>
                           <div>
@@ -995,13 +924,13 @@ Spent way too much time this week trying to perfect a prompt when I should have 
                     )}
                   </div>
 
-                  {/* Step 4: Export */}
+                  {/* Step 3: Export */}
                   {generatedContent && (
                     <div className="bg-white rounded-xl border border-neutral-200 overflow-hidden">
                       <div className="p-4 sm:p-6 border-b border-neutral-100">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center">
-                            4
+                            3
                           </div>
                           <div>
                             <h3 className="text-lg font-semibold text-neutral-900">

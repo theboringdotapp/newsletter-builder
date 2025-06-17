@@ -322,6 +322,11 @@ your-newsletter-data-repo/
     -   The generate button should only appear when there's no content generated yet.
 - The Preview area must be wider on desktop.
 - The HTML tiles in the preview (h1, h2) must be correctly styled.
+-   On the Newsletter generation page:
+    -   The "thoughts" input must be removed.
+    -   The size of the "Links" panel must be increased.
+    -   The "AI Instructions" section must be moved to the top of the "Preview Panel".
+-   The grid layout on desktop must be fixed to maintain the proportions of 3/5 for the links panel and 2/5 for the preview panel.
 
 ## PROJECT SCOPE
 
